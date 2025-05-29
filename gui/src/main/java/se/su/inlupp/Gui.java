@@ -7,8 +7,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import javafx.application.Application;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
@@ -27,7 +25,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -79,7 +76,7 @@ public class Gui extends Application {
 
     Menu menu = new Menu("file");
     menuBar.getMenus().add(menu);
-
+    
     MenuItem newMap = new MenuItem("New map");
     menu.getItems().add(newMap);
     newMap.setOnAction(new NewMapItemHandler());

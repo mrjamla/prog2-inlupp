@@ -10,7 +10,7 @@ Instruktioner finns i iLearn
 ./mvnw package
 ```
 
-(ersätt `./mvnw` med `mvnw.bat` på Windows`
+ersätt `./mvnw` med `mvnw.bat` på Windows`
 
 För att testa JavaFX innan Inlupp 1 är klar:
 
