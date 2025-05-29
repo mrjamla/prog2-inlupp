@@ -18,7 +18,6 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -31,33 +30,36 @@ import javafx.stage.Stage;
 public class Gui extends Application {
 
   private Stage stage;
-  private FileChooser fileChooser = new FileChooser();
-  private ImageView imgView = new ImageView();
+  private FileChooser fileChooser;
+  private ImageView imageView;
+  private Pane mapPane;
   private Scene scene;
-  private Pane center;
   private Button newPlace;
-  //private Graph<String> graph;
+  private VBox root;
+  private FlowPane buttonPane;
+  private MenuBar menuBar;
+  // private Graph<String> graph;
 
+  @Override
   public void start(Stage primaryStage) throws IOException {
-    //graph = new ListGraph<String>();
+    // graph = new ListGraph<String>();
     stage = primaryStage;
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
-    if(projectRoot.exists()){
+    if (projectRoot.exists()) {
+      fileChooser = new FileChooser();
       fileChooser.setInitialDirectory(projectRoot);
     } else {
       throw new IOException("Project directory not found!");
     }
 
-    BorderPane root = new BorderPane();
-    center = new Pane();
-    center.getChildren().add(imgView);
-    root.setCenter(center);
+    mapPane = new Pane();
+    imageView = new ImageView();
+    mapPane.getChildren().add(imageView);
+
+    menuBar = new MenuBar();
     
-
-    MenuBar menuBar = new MenuBar();
-
     Menu menu = new Menu("file");
     menuBar.getMenus().add(menu);
 
@@ -72,7 +74,7 @@ public class Gui extends Application {
     menu.getItems().add(saveImg);
     MenuItem exit = new MenuItem("Exit");
     menu.getItems().add(exit);
-
+    
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
 
@@ -82,79 +84,90 @@ public class Gui extends Application {
     Button newConn = new Button("New Connection");
     Button changeConn = new Button("Change Connection");
 
-    FlowPane buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
-    buttonPane.setAlignment(Pos.TOP_CENTER);
+    buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
+    buttonPane.setAlignment(Pos.CENTER);
+    buttonPane.setHgap(10);
 
-    VBox top = new VBox(menuBar, buttonPane);
-    root.setTop(top);
-
-    scene = new Scene(root, 640, 480);
+    root = new VBox(menuBar, buttonPane, mapPane);
+    root.setPrefSize(620, menuBar.getHeight()+buttonPane.getHeight()+20);
+    root.setSpacing(10);
+  
+    scene = new Scene(root);  
     stage.setScene(scene);
     stage.show();
+
+    
   }
 
   public static void main(String[] args) {
     launch(args);
   }
 
-  private void open(String filePath) {
-    Image img = new Image(filePath);
-    imgView.setImage(img);
+  private void changeMap(String filePath) {
+    Image image = new Image(filePath);
+    imageView.setImage(image);
+    // TODO: rensa onödiga instansvariabler och skapa konstant för höjd på knapp- och menypaneler tillsammans 
+    root.setPrefSize(image.getWidth(), image.getHeight()+buttonPane.getHeight()+menuBar.getHeight()+20);
+    stage.sizeToScene();
   }
 
   class LoadMapHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
+      // TODO: kontroll för att se om ändringar finns
+
       File file = fileChooser.showOpenDialog(stage);
-      
+
       if (file != null) {
-        open(file.toURI().toString());
+        changeMap(file.toURI().toString());
         // changed = false;
       }
-    
+
     }
-    
 
   }
 
-  class NewPlaceHandler implements EventHandler<ActionEvent>{
-    
-    public void handle(ActionEvent event){
+  class NewPlaceHandler implements EventHandler<ActionEvent> {
+
+    public void handle(ActionEvent event) {
       newPlace.setDisable(true);
       scene.setCursor(Cursor.CROSSHAIR);
-      
-      scene.setOnMouseClicked(secondEvent -> {
-        
+
+      // TODO: dela upp kod genom att skapa hanterare som sätter igång lyssnare efter knapptryck och en lyssnare som stängs av efter musklick 
+      mapPane.setOnMouseClicked(secondEvent -> {
+
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Name");
         dialog.setHeaderText(null);
         dialog.setContentText("Name of place:");
-        
+
         Optional<String> result = dialog.showAndWait();
-        if(result.isPresent()){
+        if (result.isPresent()) {
           String placeName = result.get();
           double x = secondEvent.getX();
           double y = secondEvent.getY();
 
           Circle circle = new Circle(x, y, 5);
           circle.setFill(Color.PINK);
-          center.getChildren().add(circle);
+          mapPane.getChildren().add(circle);
 
           Label city = new Label(placeName);
-          city.setFont(new Font("Calibri",14));
+          city.setFont(new Font("Calibri", 14));
           city.setLayoutX(x + 15);
           city.setLayoutY(y - 10);
-          center.getChildren().add(city);
+          mapPane.getChildren().add(city);
 
-          //HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
+          // HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
 
-        }else{
-          //Tror att den här behövs, eftersom man ska kunna trycka på en stad för att markera den..
-          //Aka kan man råka aktivera någon listener?
+        } else {
+          // Tror att den här behövs, eftersom man ska kunna trycka på en stad för att
+          // markera den..
+          // Aka kan man råka aktivera någon listener?
           secondEvent.consume();
         }
 
         scene.setCursor(Cursor.DEFAULT);
         newPlace.setDisable(false);
+        mapPane.setOnMouseClicked(null);
       });
     }
   }
