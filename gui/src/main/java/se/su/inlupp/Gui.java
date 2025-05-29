@@ -139,7 +139,7 @@ public class Gui extends Application {
           //HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
 
         }else{
-          //Tror att den här behövs, eftersom man ska kunna trycka på en stad för att markera den.
+          //Tror att den här behövs, eftersom man ska kunna trycka på en stad för att markera den..
           //Aka kan man råka aktivera någon listener?
           secondEvent.consume();
         }
