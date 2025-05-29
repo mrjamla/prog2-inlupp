@@ -1,22 +1,29 @@
 package se.su.inlupp;
 
 import java.io.File;
+import java.util.Optional;
 
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -25,13 +32,17 @@ public class Gui extends Application {
   private Stage stage;
   private FileChooser fileChooser = new FileChooser();
   private ImageView imgView = new ImageView();
+  private Scene scene;
+  private Pane center;
+  private Button newPlace;
+  //private Graph<String> graph;
 
   public void start(Stage primaryStage) {
-    Graph<String> graph = new ListGraph<String>();
+    //graph = new ListGraph<String>();
     stage = primaryStage;
 
     BorderPane root = new BorderPane();
-    Pane center = new Pane();
+    center = new Pane();
     center.getChildren().add(imgView);
     root.setCenter(center);
     
@@ -55,7 +66,10 @@ public class Gui extends Application {
 
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
-    Button newPlace = new Button("New Place");
+
+    newPlace = new Button("New Place");
+    newPlace.setOnAction(new NewPlaceHandler());
+
     Button newConn = new Button("New Connection");
     Button changeConn = new Button("Change Connection");
 
@@ -65,7 +79,7 @@ public class Gui extends Application {
     VBox top = new VBox(menuBar, buttonPane);
     root.setTop(top);
 
-    Scene scene = new Scene(root, 640, 480);
+    scene = new Scene(root, 640, 480);
     stage.setScene(scene);
     stage.show();
   }
@@ -92,4 +106,48 @@ public class Gui extends Application {
     
 
   }
+
+  class NewPlaceHandler implements EventHandler<ActionEvent>{
+    
+    public void handle(ActionEvent event){
+      newPlace.setDisable(true);
+      scene.setCursor(Cursor.CROSSHAIR);
+      
+      scene.setOnMouseClicked(secondEvent -> {
+        
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Name");
+        dialog.setHeaderText(null);
+        dialog.setContentText("Name of place:");
+        
+        Optional<String> result = dialog.showAndWait();
+        if(result.isPresent()){
+          String placeName = result.get();
+          double x = secondEvent.getX();
+          double y = secondEvent.getY();
+
+          Circle circle = new Circle(x, y, 5);
+          circle.setFill(Color.PINK);
+          center.getChildren().add(circle);
+
+          Label city = new Label(placeName);
+          city.setFont(new Font("Calibri",14));
+          city.setLayoutX(x + 15);
+          city.setLayoutY(y - 10);
+          center.getChildren().add(city);
+
+          //HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
+
+        }else{
+          //Tror att den här behövs, eftersom man ska kunna trycka på en stad för att markera den.
+          //Aka kan man råka aktivera någon listener?
+          secondEvent.consume();
+        }
+
+        scene.setCursor(Cursor.DEFAULT);
+        newPlace.setDisable(false);
+      });
+    }
+  }
+
 }
