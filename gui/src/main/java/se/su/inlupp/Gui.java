@@ -1,6 +1,7 @@
 package se.su.inlupp;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 
 import javafx.application.Application;
@@ -37,9 +38,17 @@ public class Gui extends Application {
   private Button newPlace;
   //private Graph<String> graph;
 
-  public void start(Stage primaryStage) {
+  public void start(Stage primaryStage) throws IOException {
     //graph = new ListGraph<String>();
     stage = primaryStage;
+
+    // Fixar så dialogfönster öppnas från projektets rotmapp.
+    File projectRoot = new File(System.getProperty("user.dir"));
+    if(projectRoot.exists()){
+      fileChooser.setInitialDirectory(projectRoot);
+    } else {
+      throw new IOException("Project directory not found!");
+    }
 
     BorderPane root = new BorderPane();
     center = new Pane();
