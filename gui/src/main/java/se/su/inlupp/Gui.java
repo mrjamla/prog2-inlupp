@@ -30,6 +30,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class Gui extends Application {
 
@@ -82,6 +83,7 @@ public class Gui extends Application {
     menu.getItems().add(saveImg);
     MenuItem exit = new MenuItem("Exit");
     menu.getItems().add(exit);
+    exit.setOnAction(new ExitItemHandler());
     
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
@@ -224,5 +226,14 @@ public class Gui extends Application {
       mapPane.setOnMouseClicked(new MapClickHandler());
 
     }
+  }
+
+  private class ExitItemHandler implements EventHandler<ActionEvent>{
+
+    @Override
+    public void handle(ActionEvent arg0) {
+      stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+    }
+
   }
 }
