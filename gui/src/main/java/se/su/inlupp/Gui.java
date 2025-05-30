@@ -1,5 +1,6 @@
 package se.su.inlupp;
 
+import java.awt.Dialog;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
@@ -14,6 +15,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -45,14 +47,18 @@ public class Gui extends Application {
   private MenuBar menuBar;
   private Graph<City> graph;
 
+  private boolean edited;
+
   private Group cityCircle;
-  //private City markedCity1;
-  //private City markedCity2;
+  // private City markedCity1;
+  // private City markedCity2;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
     graph = new ListGraph<City>();
     stage = primaryStage;
+    stage.setTitle("PathFinder");
+    edited = true;
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
@@ -68,13 +74,13 @@ public class Gui extends Application {
     mapPane.getChildren().add(imageView);
 
     menuBar = new MenuBar();
-    
+
     Menu menu = new Menu("file");
     menuBar.getMenus().add(menu);
 
     MenuItem newMap = new MenuItem("New map");
     menu.getItems().add(newMap);
-    newMap.setOnAction(new LoadMapHandler());
+    newMap.setOnAction(new NewMapItemHandler());
     MenuItem open = new MenuItem("Open");
     menu.getItems().add(open);
     MenuItem save = new MenuItem("Save");
@@ -84,13 +90,13 @@ public class Gui extends Application {
     MenuItem exit = new MenuItem("Exit");
     menu.getItems().add(exit);
     exit.setOnAction(new ExitItemHandler());
-    
+
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
 
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
-    
+
     Button newConn = new Button("New Connection");
     Button changeConn = new Button("Change Connection");
 
@@ -99,15 +105,15 @@ public class Gui extends Application {
     buttonPane.setHgap(10);
 
     root = new VBox(menuBar, buttonPane, mapPane);
-    root.setPrefSize(620, menuBar.getHeight()+buttonPane.getHeight()+20);
+    root.setPrefSize(620, menuBar.getHeight() + buttonPane.getHeight() + 20);
     root.setSpacing(10);
     // root.setAlignment(Pos.CENTER);
-  
-    scene = new Scene(root);  
+
+    scene = new Scene(root);
     stage.setScene(scene);
+    stage.setOnCloseRequest(new ExitHandler());
     stage.show();
 
-    
   }
 
   public static void main(String[] args) {
@@ -117,20 +123,21 @@ public class Gui extends Application {
   private void changeMap(String filePath) {
     Image image = new Image(filePath);
     imageView.setImage(image);
-    // TODO: rensa onödiga instansvariabler och skapa konstant för höjd på knapp- och menypaneler tillsammans 
-    root.setPrefSize(image.getWidth(), image.getHeight()+buttonPane.getHeight()+menuBar.getHeight()+20);
+    // TODO: rensa onödiga instansvariabler och skapa konstant för höjd på knapp-
+    // och menypaneler tillsammans
+    root.setPrefSize(image.getWidth(), image.getHeight() + buttonPane.getHeight() + menuBar.getHeight() + 20);
     stage.sizeToScene();
   }
 
-  private boolean checkIfNull(String string){
-    if(string == null || string.trim().isEmpty()){
+  private boolean checkIfNull(String string) {
+    if (string == null || string.trim().isEmpty()) {
       return true;
-    }else{
+    } else {
       return false;
     }
   }
 
-  private void writeErrorAlert(String prompt){
+  private void writeErrorAlert(String prompt) {
     Alert alert = new Alert(AlertType.ERROR);
     alert.setTitle("Error!");
     alert.setHeaderText(null);
@@ -138,7 +145,7 @@ public class Gui extends Application {
     alert.showAndWait();
   }
 
-  class LoadMapHandler implements EventHandler<ActionEvent> {
+  class NewMapItemHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
       // TODO: kontroll för att se om ändringar finns
 
@@ -153,10 +160,10 @@ public class Gui extends Application {
 
   }
 
-  class MapClickHandler implements EventHandler<MouseEvent>{
+  class MapClickHandler implements EventHandler<MouseEvent> {
 
     @Override
-    public void handle(MouseEvent event){
+    public void handle(MouseEvent event) {
 
       TextInputDialog dialog = new TextInputDialog();
       dialog.setTitle("Name");
@@ -167,19 +174,19 @@ public class Gui extends Application {
       if (result.isPresent()) {
 
         String placeName = result.get();
-        
-        if(checkIfNull(placeName)){
+
+        if (checkIfNull(placeName)) {
           writeErrorAlert("Name of place can not be null!");
-        }else{
+        } else {
           double x = event.getX();
           double y = event.getY();
 
-          Circle circle = new Circle(0,0,10);
+          Circle circle = new Circle(0, 0, 10);
           circle.setFill(Color.PINK);
 
           Label city = new Label(placeName);
           city.setFont(new Font("Calibri", 15));
-          city.setLayoutX(-city.getWidth()/2);
+          city.setLayoutX(-city.getWidth() / 2);
           city.setLayoutY(-10);
 
           cityCircle = new Group();
@@ -194,26 +201,25 @@ public class Gui extends Application {
           // System.err.println(graph);
 
         }
-      }else{
+      } else {
         event.consume();
       }
 
       scene.setCursor(Cursor.DEFAULT);
       newPlace.setDisable(false);
-      mapPane.setOnMouseClicked(null); 
+      mapPane.setOnMouseClicked(null);
 
     }
   }
 
-  class CityCircleClickHandler implements EventHandler<MouseEvent>{
+  class CityCircleClickHandler implements EventHandler<MouseEvent> {
 
-        @Override
-        public void handle(MouseEvent event) {
-          //Här ska man kunna markera en stad som finns på kartan
+    @Override
+    public void handle(MouseEvent event) {
+      // Här ska man kunna markera en stad som finns på kartan
 
+    }
 
-        }
-    
   }
 
   class NewPlaceHandler implements EventHandler<ActionEvent> {
@@ -228,12 +234,28 @@ public class Gui extends Application {
     }
   }
 
-  private class ExitItemHandler implements EventHandler<ActionEvent>{
+  private class ExitItemHandler implements EventHandler<ActionEvent> {
 
     @Override
     public void handle(ActionEvent arg0) {
       stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
     }
 
+  }
+
+  class ExitHandler implements EventHandler<WindowEvent> {
+    public void handle(WindowEvent event) {
+      if (edited) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Warning!");
+        alert.setContentText("Unsaved changes, continue anyway?");
+        alert.setHeaderText(null);
+
+        Optional<ButtonType> ans = alert.showAndWait();
+        if (ans.isPresent() && ans.get().equals(ButtonType.CANCEL)) {
+          event.consume(); // stoppa nedstängningshändelse
+        }
+      }
+    }
   }
 }
