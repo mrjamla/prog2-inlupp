@@ -18,6 +18,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -38,11 +39,11 @@ public class Gui extends Application {
   private VBox root;
   private FlowPane buttonPane;
   private MenuBar menuBar;
-  // private Graph<String> graph;
+  private Graph<String> graph;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
-    // graph = new ListGraph<String>();
+    graph = new ListGraph<String>();
     stage = primaryStage;
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
@@ -80,7 +81,7 @@ public class Gui extends Application {
 
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
-
+    
     Button newConn = new Button("New Connection");
     Button changeConn = new Button("Change Connection");
 
@@ -91,6 +92,7 @@ public class Gui extends Application {
     root = new VBox(menuBar, buttonPane, mapPane);
     root.setPrefSize(620, menuBar.getHeight()+buttonPane.getHeight()+20);
     root.setSpacing(10);
+    // root.setAlignment(Pos.CENTER);
   
     scene = new Scene(root);  
     stage.setScene(scene);
@@ -124,6 +126,15 @@ public class Gui extends Application {
 
     }
 
+  }
+
+  class CircleClickHandler implements EventHandler<MouseEvent>{
+
+        @Override
+        public void handle(MouseEvent event) {
+          
+        }
+    
   }
 
   class NewPlaceHandler implements EventHandler<ActionEvent> {
@@ -171,5 +182,4 @@ public class Gui extends Application {
       });
     }
   }
-
 }
