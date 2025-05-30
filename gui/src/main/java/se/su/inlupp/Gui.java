@@ -41,11 +41,11 @@ public class Gui extends Application {
   private VBox root;
   private FlowPane buttonPane;
   private MenuBar menuBar;
-  private Graph<String> graph;
+  private Graph<City> graph;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
-    graph = new ListGraph<String>();
+    graph = new ListGraph<City>();
     stage = primaryStage;
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
@@ -178,7 +178,9 @@ public class Gui extends Application {
           city.setLayoutY(y - 10);
           mapPane.getChildren().add(city);
 
-          // HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
+          City cityObject = new City(placeName, x, y);
+          graph.add(cityObject);
+
         }
       }else{
         event.consume();

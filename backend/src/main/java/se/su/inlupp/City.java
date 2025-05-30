@@ -12,6 +12,26 @@ public class City {
         this.y = y;
     }
 
+    @Override
+    public boolean equals(Object obj){
+        City other = (City) obj;
+        
+        if(this == obj){
+            return true;
+        }
+
+        if(!(obj instanceof City)){
+            return false;
+        }
+
+        return this.cityName.equals(other.cityName);
+    }
+
+    @Override
+    public int hashCode(){
+        return cityName.hashCode();
+    }
+
     public String getCityName(){
         return cityName;
     }
