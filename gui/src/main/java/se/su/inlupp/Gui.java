@@ -9,6 +9,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -42,6 +43,10 @@ public class Gui extends Application {
   private FlowPane buttonPane;
   private MenuBar menuBar;
   private Graph<City> graph;
+
+  private Group cityCircle;
+  //private City markedCity1;
+  //private City markedCity2;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
@@ -167,16 +172,20 @@ public class Gui extends Application {
           double x = event.getX();
           double y = event.getY();
 
-          Circle circle = new Circle(x, y, 5);
+          Circle circle = new Circle(0,0,10);
           circle.setFill(Color.PINK);
-          circle.setOnMouseClicked(new CircleClickHandler());
-          mapPane.getChildren().add(circle);
 
           Label city = new Label(placeName);
-          city.setFont(new Font("Calibri", 14));
-          city.setLayoutX(x + 15);
-          city.setLayoutY(y - 10);
-          mapPane.getChildren().add(city);
+          city.setFont(new Font("Calibri", 15));
+          city.setLayoutX(-city.getWidth()/2);
+          city.setLayoutY(-10);
+
+          cityCircle = new Group();
+          cityCircle.getChildren().addAll(circle, city);
+          cityCircle.setOnMouseClicked(new CityCircleClickHandler());
+
+          mapPane.getChildren().add(cityCircle);
+          cityCircle.relocate(x, y);
 
           City cityObject = new City(placeName, x, y);
           graph.add(cityObject);
@@ -194,11 +203,13 @@ public class Gui extends Application {
     }
   }
 
-  class CircleClickHandler implements EventHandler<MouseEvent>{
+  class CityCircleClickHandler implements EventHandler<MouseEvent>{
 
         @Override
         public void handle(MouseEvent event) {
           //Här ska man kunna markera en stad som finns på kartan
+
+
         }
     
   }

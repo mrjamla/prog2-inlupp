@@ -1,6 +1,6 @@
 package se.su.inlupp;
 
-public class City {
+public class City{
 
     private String cityName;
     private double x;
