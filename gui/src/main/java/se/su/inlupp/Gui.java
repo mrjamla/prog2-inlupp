@@ -3,6 +3,7 @@ package se.su.inlupp;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.Set;
 
 import javafx.application.Application;
 import javafx.event.ActionEvent;
@@ -10,6 +11,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -45,8 +47,8 @@ public class Gui extends Application {
   private Graph<City> graph;
 
   private Group cityCircle;
-  //private City markedCity1;
-  //private City markedCity2;
+  private City markedCity1 = null;
+  private City markedCity2 = null;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
@@ -206,8 +208,60 @@ public class Gui extends Application {
 
         @Override
         public void handle(MouseEvent event) {
-          //Här ska man kunna markera en stad som finns på kartan
+          //HÄR SKA MAN KUNNA MARKERA EN STAD (max 2st)
+          Object cityCircle = event.getSource();
+          City city = null;
+          Circle circle = null;
 
+
+          //OBS! Det som brister är att:
+          //Man kan markera hur många städer som helst...
+          //Man kan INTE avmarkera en stad.
+
+
+
+
+          //tar fram rätt stad och cirkel (från Group)
+          for(Node node : ((Group) cityCircle).getChildren()){
+            if(node instanceof Circle){
+              circle = (Circle) node;
+            }else if(node instanceof Label){
+              String name = ((Label) node).getText();
+              Set<City> cities = graph.getNodes();
+              
+              for(City c : cities){
+                if(c.getCityName().equals(name)){
+                  city = c;
+                  break;
+                }
+              }
+            }
+          }
+
+          //kollar om två platser redan är markerade
+          if(markedCity1 != null && markedCity2 != null){
+
+          //om staden redan är markerad ska den avmarkeras
+            if(markedCity1.equals(city)){
+              markedCity1 = null;
+              circle.setFill(Color.PINK);
+            }else if(markedCity2.equals(city)){
+              markedCity2 = null;
+              circle.setFill(Color.PINK);
+            }
+            
+            //om de två städer som är markerade inte är staden vi trycker på ska INGENTING hända
+            event.consume();
+            
+          }
+
+          //om det finns en ledig markedCity variabel ska stad som är klickad på bli markerad
+          if(markedCity1 == null ){
+            markedCity1 = city;
+          }else if(markedCity2 == null){
+            markedCity2 = city;
+          }
+          circle.setFill(Color.PURPLE);
 
         }
     
