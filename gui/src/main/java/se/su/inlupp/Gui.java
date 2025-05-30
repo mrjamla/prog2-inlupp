@@ -191,6 +191,7 @@ public class Gui extends Application {
 
           City cityObject = new City(placeName, x, y);
           graph.add(cityObject);
+          // System.err.println(graph);
 
         }
       }else{

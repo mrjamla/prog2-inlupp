@@ -44,4 +44,8 @@ public class City{
         return y;
     }
     
+    @Override
+    public String toString(){
+        return "%s (x:%f, y:%f)".formatted(cityName, x, y);
+    }
 }
