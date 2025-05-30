@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.util.Optional;
 
 import javafx.application.Application;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
@@ -62,10 +60,9 @@ public class Gui extends Application {
     
     Menu menu = new Menu("file");
     menuBar.getMenus().add(menu);
-
+    
     MenuItem newMap = new MenuItem("New map");
     menu.getItems().add(newMap);
-    newMap.setOnAction(new LoadMapHandler());
     MenuItem open = new MenuItem("Open");
     menu.getItems().add(open);
     MenuItem save = new MenuItem("Save");
