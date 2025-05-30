@@ -10,6 +10,8 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
@@ -113,6 +115,22 @@ public class Gui extends Application {
     stage.sizeToScene();
   }
 
+  private boolean checkIfNull(String string){
+    if(string == null || string.trim().isEmpty()){
+      return true;
+    }else{
+      return false;
+    }
+  }
+
+  private void writeErrorAlert(String prompt){
+    Alert alert = new Alert(AlertType.ERROR);
+    alert.setTitle("Error!");
+    alert.setHeaderText(null);
+    alert.setContentText(prompt);
+    alert.showAndWait();
+  }
+
   class LoadMapHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
       // TODO: kontroll för att se om ändringar finns
@@ -153,21 +171,27 @@ public class Gui extends Application {
 
         Optional<String> result = dialog.showAndWait();
         if (result.isPresent()) {
+
           String placeName = result.get();
-          double x = secondEvent.getX();
-          double y = secondEvent.getY();
+          if(checkIfNull(placeName)){
+            writeErrorAlert("Name of place can not be null!");
+          }else{
+            double x = secondEvent.getX();
+            double y = secondEvent.getY();
 
-          Circle circle = new Circle(x, y, 5);
-          circle.setFill(Color.PINK);
-          mapPane.getChildren().add(circle);
+            Circle circle = new Circle(x, y, 5);
+            circle.setFill(Color.PINK);
+            mapPane.getChildren().add(circle);
 
-          Label city = new Label(placeName);
-          city.setFont(new Font("Calibri", 14));
-          city.setLayoutX(x + 15);
-          city.setLayoutY(y - 10);
-          mapPane.getChildren().add(city);
+            Label city = new Label(placeName);
+            city.setFont(new Font("Calibri", 14));
+            city.setLayoutX(x + 15);
+            city.setLayoutY(y - 10);
+            mapPane.getChildren().add(city);
 
-          // HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
+            // HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
+
+          }
 
         } else {
           // Tror att den här behövs, eftersom man ska kunna trycka på en stad för att
