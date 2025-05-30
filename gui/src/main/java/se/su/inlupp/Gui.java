@@ -146,64 +146,69 @@ public class Gui extends Application {
 
   }
 
+  class MapClickHandler implements EventHandler<MouseEvent>{
+
+    @Override
+    public void handle(MouseEvent event){
+
+      TextInputDialog dialog = new TextInputDialog();
+      dialog.setTitle("Name");
+      dialog.setHeaderText(null);
+      dialog.setContentText("Name of place:");
+
+      Optional<String> result = dialog.showAndWait();
+      if (result.isPresent()) {
+
+        String placeName = result.get();
+        
+        if(checkIfNull(placeName)){
+          writeErrorAlert("Name of place can not be null!");
+        }else{
+          double x = event.getX();
+          double y = event.getY();
+
+          Circle circle = new Circle(x, y, 5);
+          circle.setFill(Color.PINK);
+          circle.setOnMouseClicked(new CircleClickHandler());
+          mapPane.getChildren().add(circle);
+
+          Label city = new Label(placeName);
+          city.setFont(new Font("Calibri", 14));
+          city.setLayoutX(x + 15);
+          city.setLayoutY(y - 10);
+          mapPane.getChildren().add(city);
+
+          // HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
+        }
+      }else{
+        event.consume();
+      }
+
+      scene.setCursor(Cursor.DEFAULT);
+      newPlace.setDisable(false);
+      mapPane.setOnMouseClicked(null); 
+
+    }
+  }
+
   class CircleClickHandler implements EventHandler<MouseEvent>{
 
         @Override
         public void handle(MouseEvent event) {
-          
+          //Här ska man kunna markera en stad som finns på kartan
         }
     
   }
 
   class NewPlaceHandler implements EventHandler<ActionEvent> {
 
+    @Override
     public void handle(ActionEvent event) {
       newPlace.setDisable(true);
       scene.setCursor(Cursor.CROSSHAIR);
 
-      // TODO: dela upp kod genom att skapa hanterare som sätter igång lyssnare efter knapptryck och en lyssnare som stängs av efter musklick 
-      mapPane.setOnMouseClicked(secondEvent -> {
+      mapPane.setOnMouseClicked(new MapClickHandler());
 
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Name");
-        dialog.setHeaderText(null);
-        dialog.setContentText("Name of place:");
-
-        Optional<String> result = dialog.showAndWait();
-        if (result.isPresent()) {
-
-          String placeName = result.get();
-          if(checkIfNull(placeName)){
-            writeErrorAlert("Name of place can not be null!");
-          }else{
-            double x = secondEvent.getX();
-            double y = secondEvent.getY();
-
-            Circle circle = new Circle(x, y, 5);
-            circle.setFill(Color.PINK);
-            mapPane.getChildren().add(circle);
-
-            Label city = new Label(placeName);
-            city.setFont(new Font("Calibri", 14));
-            city.setLayoutX(x + 15);
-            city.setLayoutY(y - 10);
-            mapPane.getChildren().add(city);
-
-            // HÄR SKA EN NOD LÄGGAS TILL I GRAFEN
-
-          }
-
-        } else {
-          // Tror att den här behövs, eftersom man ska kunna trycka på en stad för att
-          // markera den..
-          // Aka kan man råka aktivera någon listener?
-          secondEvent.consume();
-        }
-
-        scene.setCursor(Cursor.DEFAULT);
-        newPlace.setDisable(false);
-        mapPane.setOnMouseClicked(null);
-      });
     }
   }
 }
