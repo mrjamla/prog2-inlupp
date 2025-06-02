@@ -1,5 +1,6 @@
 package se.su.inlupp;
 
+import java.awt.Dialog;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -32,6 +34,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class Gui extends Application {
 
@@ -46,6 +49,8 @@ public class Gui extends Application {
   private MenuBar menuBar;
   private Graph<City> graph;
 
+  private boolean edited;
+
   private Group cityCircle;
   private City markedCity1 = null;
   private City markedCity2 = null;
@@ -54,6 +59,8 @@ public class Gui extends Application {
   public void start(Stage primaryStage) throws IOException {
     graph = new ListGraph<City>();
     stage = primaryStage;
+    stage.setTitle("PathFinder");
+    edited = true;
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
@@ -69,13 +76,13 @@ public class Gui extends Application {
     mapPane.getChildren().add(imageView);
 
     menuBar = new MenuBar();
-    
+
     Menu menu = new Menu("file");
     menuBar.getMenus().add(menu);
 
     MenuItem newMap = new MenuItem("New map");
     menu.getItems().add(newMap);
-    newMap.setOnAction(new LoadMapHandler());
+    newMap.setOnAction(new NewMapItemHandler());
     MenuItem open = new MenuItem("Open");
     menu.getItems().add(open);
     MenuItem save = new MenuItem("Save");
@@ -84,13 +91,14 @@ public class Gui extends Application {
     menu.getItems().add(saveImg);
     MenuItem exit = new MenuItem("Exit");
     menu.getItems().add(exit);
-    
+    exit.setOnAction(new ExitItemHandler());
+
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
 
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
-    
+
     Button newConn = new Button("New Connection");
     Button changeConn = new Button("Change Connection");
 
@@ -99,15 +107,15 @@ public class Gui extends Application {
     buttonPane.setHgap(10);
 
     root = new VBox(menuBar, buttonPane, mapPane);
-    root.setPrefSize(620, menuBar.getHeight()+buttonPane.getHeight()+20);
+    root.setPrefSize(620, menuBar.getHeight() + buttonPane.getHeight() + 20);
     root.setSpacing(10);
     // root.setAlignment(Pos.CENTER);
-  
-    scene = new Scene(root);  
+
+    scene = new Scene(root);
     stage.setScene(scene);
+    stage.setOnCloseRequest(new ExitHandler());
     stage.show();
 
-    
   }
 
   public static void main(String[] args) {
@@ -117,20 +125,21 @@ public class Gui extends Application {
   private void changeMap(String filePath) {
     Image image = new Image(filePath);
     imageView.setImage(image);
-    // TODO: rensa onödiga instansvariabler och skapa konstant för höjd på knapp- och menypaneler tillsammans 
-    root.setPrefSize(image.getWidth(), image.getHeight()+buttonPane.getHeight()+menuBar.getHeight()+20);
+    // TODO: rensa onödiga instansvariabler och skapa konstant för höjd på knapp-
+    // och menypaneler tillsammans
+    root.setPrefSize(image.getWidth(), image.getHeight() + buttonPane.getHeight() + menuBar.getHeight() + 20);
     stage.sizeToScene();
   }
 
-  private boolean checkIfNull(String string){
-    if(string == null || string.trim().isEmpty()){
+  private boolean checkIfNull(String string) {
+    if (string == null || string.trim().isEmpty()) {
       return true;
-    }else{
+    } else {
       return false;
     }
   }
 
-  private void writeErrorAlert(String prompt){
+  private void writeErrorAlert(String prompt) {
     Alert alert = new Alert(AlertType.ERROR);
     alert.setTitle("Error!");
     alert.setHeaderText(null);
@@ -138,7 +147,7 @@ public class Gui extends Application {
     alert.showAndWait();
   }
 
-  class LoadMapHandler implements EventHandler<ActionEvent> {
+  class NewMapItemHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
       // TODO: kontroll för att se om ändringar finns
 
@@ -153,10 +162,10 @@ public class Gui extends Application {
 
   }
 
-  class MapClickHandler implements EventHandler<MouseEvent>{
+  class MapClickHandler implements EventHandler<MouseEvent> {
 
     @Override
-    public void handle(MouseEvent event){
+    public void handle(MouseEvent event) {
 
       TextInputDialog dialog = new TextInputDialog();
       dialog.setTitle("Name");
@@ -167,10 +176,10 @@ public class Gui extends Application {
       if (result.isPresent()) {
 
         String placeName = result.get();
-        
-        if(checkIfNull(placeName)){
+
+        if (checkIfNull(placeName)) {
           writeErrorAlert("Name of place can not be null!");
-        }else{
+        } else {
           double x = event.getX();
           double y = event.getY();
 
@@ -192,75 +201,72 @@ public class Gui extends Application {
           // System.err.println(graph);
 
         }
-      }else{
+      } else {
         event.consume();
       }
 
       scene.setCursor(Cursor.DEFAULT);
       newPlace.setDisable(false);
-      mapPane.setOnMouseClicked(null); 
+      mapPane.setOnMouseClicked(null);
 
     }
   }
 
-  class CityCircleClickHandler implements EventHandler<MouseEvent>{
+  class CityCircleClickHandler implements EventHandler<MouseEvent> {
 
-        @Override
-        public void handle(MouseEvent event) {
-          //HÄR SKA MAN KUNNA MARKERA EN STAD (max 2st)
-          Object cityCircle = event.getSource();
-          City city = null;
-          Circle circle = null;
+    @Override
+    public void handle(MouseEvent event) {
+      // HÄR SKA MAN KUNNA MARKERA EN STAD (max 2st)
+      Object cityCircle = event.getSource();
+      City city = null;
+      Circle circle = null;
 
           //tar fram rätt stad och cirkel (från Group)
-          for(Node node : ((Group) cityCircle).getChildren()){
-            if(node instanceof Circle){
-              circle = (Circle) node;
-            }else if(node instanceof Label){
-              String name = ((Label) node).getText();
-              Set<City> cities = graph.getNodes();
+      for(Node node : ((Group) cityCircle).getChildren()){
+        if(node instanceof Circle){
+          circle = (Circle) node;
+        }else if(node instanceof Label){
+          String name = ((Label) node).getText();
+          Set<City> cities = graph.getNodes();
               
-              for(City c : cities){
-                if(c.getCityName().equals(name)){
-                  city = c;
-                  break;
-                }
-              }
+          for(City c : cities){
+            if(c.getCityName().equals(name)){
+              city = c;
+              break;
             }
           }
+        }
+      }
 
           //kollar om två platser redan är markerade
-          if(markedCity1 != null && markedCity2 != null){
+      if(markedCity1 != null && markedCity2 != null){
 
           //om staden redan är markerad ska den avmarkeras
-            if(markedCity1.equals(city)){
-              markedCity1 = null;
-              circle.setFill(Color.PINK);
-              return;
-            }else if(markedCity2.equals(city)){
-              markedCity2 = null;
-              circle.setFill(Color.PINK);
-              return;
-            }else{
+        if(markedCity1.equals(city)){
+          markedCity1 = null;
+          circle.setFill(Color.PINK);
+          return;
+        }else if(markedCity2.equals(city)){
+          markedCity2 = null;
+          circle.setFill(Color.PINK);
+          return;
+        }else{
               //om de två städer som är markerade inte är staden vi trycker på ska INGENTING hända
-              return;
-            }
-            
-          }
+          return;
+        }      
+      }
 
           //om det finns en ledig markedCity variabel ska stad som är klickad på bli markerad
-          if(markedCity1 == null ){
-            markedCity1 = city;
-            circle.setFill(Color.PURPLE);
-            return;
-          }else if(markedCity2 == null){
-            markedCity2 = city;
-            circle.setFill(Color.PURPLE);
-            return;
-          }
-
-        }
-    
+      if(markedCity1 == null ){
+        markedCity1 = city;
+        circle.setFill(Color.PURPLE);
+        return;
+      }else if(markedCity2 == null){
+        markedCity2 = city;
+        circle.setFill(Color.PURPLE);
+        return;
+      }
+    }
   }
 
   class NewPlaceHandler implements EventHandler<ActionEvent> {
@@ -272,6 +278,31 @@ public class Gui extends Application {
 
       mapPane.setOnMouseClicked(new MapClickHandler());
 
+    }
+  }
+
+  private class ExitItemHandler implements EventHandler<ActionEvent> {
+
+    @Override
+    public void handle(ActionEvent arg0) {
+      stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+    }
+
+  }
+
+  class ExitHandler implements EventHandler<WindowEvent> {
+    public void handle(WindowEvent event) {
+      if (edited) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Warning!");
+        alert.setContentText("Unsaved changes, continue anyway?");
+        alert.setHeaderText(null);
+
+        Optional<ButtonType> ans = alert.showAndWait();
+        if (ans.isPresent() && ans.get().equals(ButtonType.CANCEL)) {
+          event.consume(); // stoppa nedstängningshändelse
+        }
+      }
     }
   }
 }
