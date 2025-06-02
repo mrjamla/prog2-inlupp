@@ -1,6 +1,5 @@
 package se.su.inlupp;
 
-import java.awt.Dialog;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
@@ -57,10 +56,10 @@ public class Gui extends Application {
 
   @Override
   public void start(Stage primaryStage) throws IOException {
-    graph = new ListGraph<City>();
+    graph = new ListGraph<>();
     stage = primaryStage;
     stage.setTitle("PathFinder");
-    edited = true;
+    edited = true; // ändra till false när funktioner som utför ändringar på kartan fungerar
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
@@ -77,7 +76,7 @@ public class Gui extends Application {
 
     menuBar = new MenuBar();
 
-    Menu menu = new Menu("file");
+    Menu menu = new Menu("File");
     menuBar.getMenus().add(menu);
     
     MenuItem newMap = new MenuItem("New map");
