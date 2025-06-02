@@ -174,20 +174,18 @@ public class Gui extends Application {
           double x = event.getX();
           double y = event.getY();
 
-          Circle circle = new Circle(0,0,10);
+          Circle circle = new Circle(0,0,15);
           circle.setFill(Color.PINK);
 
           Label city = new Label(placeName);
-          city.setFont(new Font("Calibri", 15));
-          city.setLayoutX(-city.getWidth()/2);
-          city.setLayoutY(-10);
+          city.setFont(new Font("Calibri", 18));
 
           cityCircle = new Group();
           cityCircle.getChildren().addAll(circle, city);
           cityCircle.setOnMouseClicked(new CityCircleClickHandler());
 
           mapPane.getChildren().add(cityCircle);
-          cityCircle.relocate(x, y);
+          cityCircle.relocate(x-15, y-15);
 
           City cityObject = new City(placeName, x, y);
           graph.add(cityObject);
@@ -214,14 +212,6 @@ public class Gui extends Application {
           City city = null;
           Circle circle = null;
 
-
-          //OBS! Det som brister är att:
-          //Man kan markera hur många städer som helst...
-          //Man kan INTE avmarkera en stad.
-
-
-
-
           //tar fram rätt stad och cirkel (från Group)
           for(Node node : ((Group) cityCircle).getChildren()){
             if(node instanceof Circle){
@@ -246,23 +236,28 @@ public class Gui extends Application {
             if(markedCity1.equals(city)){
               markedCity1 = null;
               circle.setFill(Color.PINK);
+              return;
             }else if(markedCity2.equals(city)){
               markedCity2 = null;
               circle.setFill(Color.PINK);
+              return;
+            }else{
+              //om de två städer som är markerade inte är staden vi trycker på ska INGENTING hända
+              return;
             }
-            
-            //om de två städer som är markerade inte är staden vi trycker på ska INGENTING hända
-            event.consume();
             
           }
 
           //om det finns en ledig markedCity variabel ska stad som är klickad på bli markerad
           if(markedCity1 == null ){
             markedCity1 = city;
+            circle.setFill(Color.PURPLE);
+            return;
           }else if(markedCity2 == null){
             markedCity2 = city;
+            circle.setFill(Color.PURPLE);
+            return;
           }
-          circle.setFill(Color.PURPLE);
 
         }
     
