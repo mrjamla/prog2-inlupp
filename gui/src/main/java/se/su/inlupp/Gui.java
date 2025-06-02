@@ -8,6 +8,8 @@ import java.util.Set;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
@@ -25,6 +27,7 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -43,10 +46,9 @@ public class Gui extends Application {
   private Pane mapPane;
   private Scene scene;
   private Button newPlace;
-  private VBox root;
-  private FlowPane buttonPane;
-  private MenuBar menuBar;
+  private VBox vbox;
   private Graph<City> graph;
+  private BorderPane root;
 
   private boolean edited;
 
@@ -56,10 +58,11 @@ public class Gui extends Application {
 
   @Override
   public void start(Stage primaryStage) throws IOException {
+    // skapar en modell för grafen som lagrar alla platser och förbindelser på kartan
     graph = new ListGraph<>();
-    stage = primaryStage;
-    stage.setTitle("PathFinder");
-    edited = true; // ändra till false när funktioner som utför ändringar på kartan fungerar
+    
+    // ta bort när funktioner som utför ändringar på kartan fungerar (instansvariabeln sätts till false utan explicit tilldelning)
+    edited = true; 
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
@@ -70,51 +73,59 @@ public class Gui extends Application {
       throw new IOException("Project directory not found!");
     }
 
-    mapPane = new Pane();
-    imageView = new ImageView();
-    mapPane.getChildren().add(imageView);
-
-    menuBar = new MenuBar();
-
-    Menu menu = new Menu("File");
-    menuBar.getMenus().add(menu);
-    
+    // skapar en filmeny
     MenuItem newMap = new MenuItem("New map");
-    menu.getItems().add(newMap);
     newMap.setOnAction(new NewMapItemHandler());
     MenuItem open = new MenuItem("Open");
-    menu.getItems().add(open);
     MenuItem save = new MenuItem("Save");
-    menu.getItems().add(save);
-    MenuItem saveImg = new MenuItem("Save Image");
-    menu.getItems().add(saveImg);
+    MenuItem saveImage = new MenuItem("Save Image");
     MenuItem exit = new MenuItem("Exit");
-    menu.getItems().add(exit);
     exit.setOnAction(new ExitItemHandler());
 
+    Menu menu = new Menu("File");
+    menu.getItems().addAll(newMap, open, save, saveImage, exit);
+    MenuBar menuBar = new MenuBar(menu);
+
+
+    // skapar en knapplist
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
-
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
-
     Button newConn = new Button("New Connection");
     Button changeConn = new Button("Change Connection");
 
-    buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
+    FlowPane buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
     buttonPane.setAlignment(Pos.CENTER);
-    buttonPane.setHgap(10);
+    buttonPane.setOrientation(Orientation.HORIZONTAL);
+    buttonPane.setHgap(5);
+    buttonPane.setVgap(5);
+    buttonPane.setPadding(new Insets(5));
 
-    root = new VBox(menuBar, buttonPane, mapPane);
-    root.setPrefSize(620, menuBar.getHeight() + buttonPane.getHeight() + 20);
-    root.setSpacing(10);
-    // root.setAlignment(Pos.CENTER);
+    // skapar en behållare för alla knapp- och menykomponenter 
+    vbox = new VBox(menuBar, buttonPane);
 
+    // skapar en karta som med en bildvy
+    imageView = new ImageView();
+    mapPane = new Pane(imageView);
+    mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter att fönsteruppdatering fungerar som önskat
+  
+    // skapar en behållare till alla kartkomponenter 
+    FlowPane centerPane = new FlowPane(mapPane);
+    centerPane.setAlignment(Pos.CENTER);
+
+    // skapar en behållare (rotnod) till alla komponenter i fönstret
+    root = new BorderPane();
+    root.setTop(vbox);
+    root.setCenter(centerPane);
+    root.setPrefSize(520, vbox.getHeight());
+
+    stage = primaryStage;
+    stage.setTitle("PathFinder");
+    stage.setOnCloseRequest(new ExitHandler());
     scene = new Scene(root);
     stage.setScene(scene);
-    stage.setOnCloseRequest(new ExitHandler());
     stage.show();
-
   }
 
   public static void main(String[] args) {
@@ -122,11 +133,14 @@ public class Gui extends Application {
   }
 
   private void changeMap(String filePath) {
+    // steg 1: hämtar bild på karta och ritar ut i kartvy
     Image image = new Image(filePath);
     imageView.setImage(image);
-    // TODO: rensa onödiga instansvariabler och skapa konstant för höjd på knapp-
-    // och menypaneler tillsammans
-    root.setPrefSize(image.getWidth(), image.getHeight() + buttonPane.getHeight() + menuBar.getHeight() + 20);
+    // steg 2: anpassar rot och fönster efter (önskad) bildbredd
+    root.setPrefWidth(image.getWidth()); 
+    stage.sizeToScene();
+    // steg 3: anpassar rot och fönster efter ny (önskad) bredd på komponenter
+    root.setPrefHeight(image.getHeight() + vbox.getHeight());
     stage.sizeToScene();
   }
 
