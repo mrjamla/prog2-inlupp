@@ -1,6 +1,6 @@
 package se.su.inlupp;
 
-import java.awt.Dialog;
+//import java.awt.Dialog;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
@@ -18,15 +18,18 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -35,6 +38,7 @@ import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Pair;
 
 public class Gui extends Application {
 
@@ -54,6 +58,8 @@ public class Gui extends Application {
   private Group cityCircle;
   private City markedCity1 = null;
   private City markedCity2 = null;
+  private Circle markedCircle1 = null;
+  private Circle markedCircle2 = null;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
@@ -100,6 +106,8 @@ public class Gui extends Application {
     newPlace.setOnAction(new NewPlaceHandler());
 
     Button newConn = new Button("New Connection");
+    newConn.setOnAction(new NewConnHandler());
+
     Button changeConn = new Button("Change Connection");
 
     buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
@@ -244,6 +252,7 @@ public class Gui extends Application {
           //om staden redan är markerad ska den avmarkeras
         if(markedCity1.equals(city)){
           markedCity1 = null;
+
           circle.setFill(Color.PINK);
           return;
         }else if(markedCity2.equals(city)){
@@ -259,10 +268,12 @@ public class Gui extends Application {
           //om det finns en ledig markedCity variabel ska stad som är klickad på bli markerad
       if(markedCity1 == null ){
         markedCity1 = city;
+        markedCircle1 = circle;
         circle.setFill(Color.PURPLE);
         return;
       }else if(markedCity2 == null){
         markedCity2 = city;
+        markedCircle2 = circle;
         circle.setFill(Color.PURPLE);
         return;
       }
@@ -277,6 +288,83 @@ public class Gui extends Application {
       scene.setCursor(Cursor.CROSSHAIR);
 
       mapPane.setOnMouseClicked(new MapClickHandler());
+
+    }
+  }
+
+  class NewConnHandler implements EventHandler<ActionEvent>{
+    public void handle(ActionEvent event){
+
+      if(markedCity1 == null || markedCity2 == null){
+        writeErrorAlert("Two places must be selected!");
+        event.consume();
+        return;
+      }
+
+      if(graph.pathExists(markedCity1, markedCity2)){
+        writeErrorAlert("There already exists a connection between these cities!");
+      }else{
+        String cityName1 = markedCity1.getCityName();
+        String cityName2 = markedCity2.getCityName();
+
+        Dialog<Pair<String, Integer>> dialog = new Dialog<>();
+        dialog.setTitle("New connection");
+        dialog.setHeaderText("Connection from " + cityName1 + " to " + cityName2);
+
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        TextField nameField = new TextField();
+        nameField.setPromptText("Name");
+        TextField timeField = new TextField();
+        timeField.setPromptText("Travel time:");
+
+        //Gör att endast 0-9 kan skrivas in i timeField
+        timeField.textProperty().addListener((obs, oldVal, newVal) -> {
+          if(!newVal.matches("\\d*")){
+            timeField.setText(oldVal);
+          }
+        });
+
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(12);
+
+        grid.add(new Label("Name of connection:"), 0, 0);
+        grid.add(nameField, 1, 0);
+        grid.add(new Label("Travel time:"), 0, 1);
+        grid.add(timeField, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        //Den här behövdes för att dialog.showAndWait annars returnerade en ButtonType
+        //Istället för en Pair med name och time.
+        dialog.setResultConverter(dialogButton -> {
+          if(dialogButton == ButtonType.OK){
+            String name = nameField.getText();
+            int time = Integer.parseInt(timeField.getText());
+            return new Pair<>(name,time);
+          }
+          return null;
+        });
+
+        Optional<Pair<String, Integer>> result = dialog.showAndWait();
+
+        result.ifPresent(pair -> {
+          String connectionName = pair.getKey();
+          int connectionTime = pair.getValue();
+
+          graph.connect(markedCity1,markedCity2,connectionName,connectionTime);
+          markedCity1 = null;
+          markedCity2 = null;
+          markedCircle1.setFill(Color.PINK);
+          markedCircle2.setFill(Color.PINK);
+
+        });
+
+        event.consume();
+        return;
+
+      }
 
     }
   }
