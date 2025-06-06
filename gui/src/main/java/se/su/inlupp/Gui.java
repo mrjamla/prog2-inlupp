@@ -34,6 +34,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -60,6 +61,10 @@ public class Gui extends Application {
   private City markedCity2 = null;
   private Circle markedCircle1 = null;
   private Circle markedCircle2 = null;
+  private double markedCityCircle1X = 0;
+  private double markedCityCircle1Y = 0;
+  private double markedCityCircle2X = 0;
+  private double markedCityCircle2Y = 0;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
@@ -269,11 +274,15 @@ public class Gui extends Application {
       if(markedCity1 == null ){
         markedCity1 = city;
         markedCircle1 = circle;
+        markedCityCircle1X = city.getX();
+        markedCityCircle1Y = city.getY();
         circle.setFill(Color.PURPLE);
         return;
       }else if(markedCity2 == null){
         markedCity2 = city;
         markedCircle2 = circle;
+        markedCityCircle2X = city.getX();
+        markedCityCircle2Y = city.getY();
         circle.setFill(Color.PURPLE);
         return;
       }
@@ -358,6 +367,12 @@ public class Gui extends Application {
           markedCity2 = null;
           markedCircle1.setFill(Color.PINK);
           markedCircle2.setFill(Color.PINK);
+          Line line = new Line(1,2,3,4);
+          mapPane.getChildren().add(1,line);
+          line.setStartX(markedCityCircle1X);
+          line.setStartY(markedCityCircle1Y);
+          line.setEndX(markedCityCircle2X);
+          line.setEndY(markedCityCircle2Y);
 
         });
 
