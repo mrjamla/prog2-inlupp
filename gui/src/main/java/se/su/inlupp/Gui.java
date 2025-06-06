@@ -251,32 +251,34 @@ public class Gui extends Application {
         }
       }
 
-          //kollar om två platser redan är markerade
+      //Om staden redan är markerad ska den avmarkeras
+      if(markedCity1 != null && markedCity1.equals(city)){
+        markedCity1 = null;
+        circle.setFill(Color.PINK);
+        event.consume();
+        return;
+      }else if(markedCity2 != null && markedCity2.equals(city)){
+        markedCity2 = null;
+        circle.setFill(Color.PINK);
+        event.consume();
+        return;
+      } 
+
+      //Ifall de två platser som är markerade INTE är 
+      //den vi trycker på ska ingenting hända. 
       if(markedCity1 != null && markedCity2 != null){
-
-          //om staden redan är markerad ska den avmarkeras
-        if(markedCity1.equals(city)){
-          markedCity1 = null;
-
-          circle.setFill(Color.PINK);
-          return;
-        }else if(markedCity2.equals(city)){
-          markedCity2 = null;
-          circle.setFill(Color.PINK);
-          return;
-        }else{
-              //om de två städer som är markerade inte är staden vi trycker på ska INGENTING hända
-          return;
-        }      
+        event.consume();
+        return;
       }
 
-          //om det finns en ledig markedCity variabel ska stad som är klickad på bli markerad
+      //Om det finns en ledig markedCity variabel ska stad som är klickad på bli markerad
       if(markedCity1 == null ){
         markedCity1 = city;
         markedCircle1 = circle;
         markedCityCircle1X = city.getX();
         markedCityCircle1Y = city.getY();
         circle.setFill(Color.PURPLE);
+        event.consume();
         return;
       }else if(markedCity2 == null){
         markedCity2 = city;
@@ -284,6 +286,7 @@ public class Gui extends Application {
         markedCityCircle2X = city.getX();
         markedCityCircle2Y = city.getY();
         circle.setFill(Color.PURPLE);
+        event.consume();
         return;
       }
     }
@@ -350,8 +353,19 @@ public class Gui extends Application {
         dialog.setResultConverter(dialogButton -> {
           if(dialogButton == ButtonType.OK){
             String name = nameField.getText();
-            int time = Integer.parseInt(timeField.getText());
-            return new Pair<>(name,time);
+            String timeText = timeField.getText();
+            
+            if(name.isBlank() || timeText.isBlank()){
+              return null;
+            }
+
+            try{
+              int time = Integer.parseInt(timeField.getText());
+              return new Pair<>(name,time);
+            }catch(NumberFormatException e){
+              return null;
+            }
+
           }
           return null;
         });
@@ -375,6 +389,11 @@ public class Gui extends Application {
           line.setEndY(markedCityCircle2Y);
 
         });
+
+        markedCity1 = null;
+        markedCity2 = null;
+        markedCircle1.setFill(Color.PINK);
+        markedCircle2.setFill(Color.PINK);
 
         event.consume();
         return;
