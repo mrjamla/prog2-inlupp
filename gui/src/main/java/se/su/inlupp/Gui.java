@@ -228,12 +228,6 @@ public class Gui extends Application {
 
     @Override
     public void handle(MouseEvent event) {
-      // HÄR SKA MAN KUNNA MARKERA EN STAD (max 2st)
-
-      // Group cityCircle = (Group) event.getSource();
-      // City clickedCity = null;
-      // Circle clickedCircle = null;
-
       // tar fram referenser till klickad cirkel och tillhörande stad (från Group)
       Group cityCircle = (Group) event.getSource();
       ObservableList<Node> list = cityCircle.getChildren();
@@ -251,36 +245,30 @@ public class Gui extends Application {
         }
       }
 
+      // potentiell hjälpklass: markCityIfPossible(City city)
       // Just in case...
       if(clickedCity == null){
         throw new NullPointerException("City-node expected, null found!");
       }
 
-      if(clickedCity.equals(markedCity1)){
+      if(markedCity1 == null && markedCity2 == null){ // inget markerat sen tidigare, markera klickad stad
+        markedCity1 = clickedCity;
+      } else if(clickedCity.equals(markedCity1)){ // hämtad stad redan markerad, ta bort markering
+        //TODO: ändra till att städer är lika omm koordinater och namn överensstämmer
         markedCity1 = null;
         clickedCircle.setFill(Color.PINK);
       } else if(clickedCity.equals(markedCity2)){
-        //TODO: ändra till att städer är lika omm koordinater och namn överensstämmer
         markedCity2 = null;
         clickedCircle.setFill(Color.PINK);
-      } else if(markedCity1 == null){
+      } else if(markedCity1 == null){ // klickad stad inte markerad, markera hämtad stad
         markedCity1 = clickedCity;
         clickedCircle.setFill(Color.PURPLE);
       } else if(markedCity2 == null){
         markedCity2 = clickedCity;
         clickedCircle.setFill(Color.PURPLE);
-      } else{
+      } else{ // markeringar upptagna, ignorera klickad stad
         // nothin' 2 do, they be both unavailable, move on bro... move on
       }
-
-      // kollar om ingen plats är markerade
-      
-      // om staden redan är markerad ska den avmarkeras
-
-      // om det finns en ledig markedCity ska stad som är klickad på bli
-      // markerad
- 
-      // .........................................................
     }
   }
 
