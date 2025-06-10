@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import javafx.application.Application;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -58,11 +59,13 @@ public class Gui extends Application {
 
   @Override
   public void start(Stage primaryStage) throws IOException {
-    // skapar en modell för grafen som lagrar alla platser och förbindelser på kartan
+    // skapar en modell för grafen som lagrar alla platser och förbindelser på
+    // kartan
     graph = new ListGraph<>();
-    
-    // ta bort när funktioner som utför ändringar på kartan fungerar (instansvariabeln sätts till false utan explicit tilldelning)
-    edited = true; 
+
+    // ta bort när funktioner som utför ändringar på kartan fungerar
+    // (instansvariabeln sätts till false utan explicit tilldelning)
+    edited = true;
 
     // Fixar så dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
@@ -86,7 +89,6 @@ public class Gui extends Application {
     menu.getItems().addAll(newMap, open, save, saveImage, exit);
     MenuBar menuBar = new MenuBar(menu);
 
-
     // skapar en knapplist
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
@@ -102,15 +104,16 @@ public class Gui extends Application {
     buttonPane.setVgap(5);
     buttonPane.setPadding(new Insets(5));
 
-    // skapar en behållare för alla knapp- och menykomponenter 
+    // skapar en behållare för alla knapp- och menykomponenter
     vbox = new VBox(menuBar, buttonPane);
 
     // skapar en karta som med en bildvy
     imageView = new ImageView();
     mapPane = new Pane(imageView);
-    mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter att fönsteruppdatering fungerar som önskat
-  
-    // skapar en behållare till alla kartkomponenter 
+    mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter att fönsteruppdatering fungerar som
+                                                          // önskat
+
+    // skapar en behållare till alla kartkomponenter
     FlowPane centerPane = new FlowPane(mapPane);
     centerPane.setAlignment(Pos.CENTER);
 
@@ -137,7 +140,7 @@ public class Gui extends Application {
     Image image = new Image(filePath);
     imageView.setImage(image);
     // steg 2: anpassar rot och fönster efter (önskad) bildbredd
-    root.setPrefWidth(image.getWidth()); 
+    root.setPrefWidth(image.getWidth());
     stage.sizeToScene();
     // steg 3: anpassar rot och fönster efter ny (önskad) bredd på komponenter
     root.setPrefHeight(image.getHeight() + vbox.getHeight());
@@ -145,11 +148,7 @@ public class Gui extends Application {
   }
 
   private boolean checkIfNull(String string) {
-    if (string == null || string.trim().isEmpty()) {
-      return true;
-    } else {
-      return false;
-    }
+    return string == null || string.trim().isEmpty();
   }
 
   private void writeErrorAlert(String prompt) {
@@ -196,7 +195,7 @@ public class Gui extends Application {
           double x = event.getX();
           double y = event.getY();
 
-          Circle circle = new Circle(0,0,15);
+          Circle circle = new Circle(0, 0, 15);
           circle.setFill(Color.PINK);
 
           Label city = new Label(placeName);
@@ -207,7 +206,7 @@ public class Gui extends Application {
           cityCircle.setOnMouseClicked(new CityCircleClickHandler());
 
           mapPane.getChildren().add(cityCircle);
-          cityCircle.relocate(x-15, y-15);
+          cityCircle.relocate(x - 15, y - 15);
 
           City cityObject = new City(placeName, x, y);
           graph.add(cityObject);
@@ -230,55 +229,58 @@ public class Gui extends Application {
     @Override
     public void handle(MouseEvent event) {
       // HÄR SKA MAN KUNNA MARKERA EN STAD (max 2st)
-      Object cityCircle = event.getSource();
-      City city = null;
-      Circle circle = null;
 
-          //tar fram rätt stad och cirkel (från Group)
-      for(Node node : ((Group) cityCircle).getChildren()){
-        if(node instanceof Circle){
-          circle = (Circle) node;
-        }else if(node instanceof Label){
-          String name = ((Label) node).getText();
-          Set<City> cities = graph.getNodes();
-              
-          for(City c : cities){
-            if(c.getCityName().equals(name)){
-              city = c;
-              break;
-            }
-          }
+      // Group cityCircle = (Group) event.getSource();
+      // City clickedCity = null;
+      // Circle clickedCircle = null;
+
+      // tar fram referenser till klickad cirkel och tillhörande stad (från Group)
+      Group cityCircle = (Group) event.getSource();
+      ObservableList<Node> list = cityCircle.getChildren();
+      Circle clickedCircle = (Circle) list.get(0);
+      Label clickedLabel = (Label) list.get(1);
+      String cityName = clickedLabel.getText();
+      // tar fram samma stad ur grafen (modellen)
+      City clickedCity = null;
+      // TODO: skapa hjälpmetod i ListGraph för att hämta en nod
+      Set<City> cities = graph.getNodes();
+      for (City city : cities) {
+        if (city.getCityName().equals(cityName)) {
+          clickedCity = city;
+          break;
         }
       }
 
-          //kollar om två platser redan är markerade
-      if(markedCity1 != null && markedCity2 != null){
-
-          //om staden redan är markerad ska den avmarkeras
-        if(markedCity1.equals(city)){
-          markedCity1 = null;
-          circle.setFill(Color.PINK);
-          return;
-        }else if(markedCity2.equals(city)){
-          markedCity2 = null;
-          circle.setFill(Color.PINK);
-          return;
-        }else{
-              //om de två städer som är markerade inte är staden vi trycker på ska INGENTING hända
-          return;
-        }      
+      // Just in case...
+      if(clickedCity == null){
+        throw new NullPointerException("City-node expected, null found!");
       }
 
-          //om det finns en ledig markedCity variabel ska stad som är klickad på bli markerad
-      if(markedCity1 == null ){
-        markedCity1 = city;
-        circle.setFill(Color.PURPLE);
-        return;
-      }else if(markedCity2 == null){
-        markedCity2 = city;
-        circle.setFill(Color.PURPLE);
-        return;
+      if(clickedCity.equals(markedCity1)){
+        markedCity1 = null;
+        clickedCircle.setFill(Color.PINK);
+      } else if(clickedCity.equals(markedCity2)){
+        //TODO: ändra till att städer är lika omm koordinater och namn överensstämmer
+        markedCity2 = null;
+        clickedCircle.setFill(Color.PINK);
+      } else if(markedCity1 == null){
+        markedCity1 = clickedCity;
+        clickedCircle.setFill(Color.PURPLE);
+      } else if(markedCity2 == null){
+        markedCity2 = clickedCity;
+        clickedCircle.setFill(Color.PURPLE);
+      } else{
+        // nothin' 2 do, they be both unavailable, move on bro... move on
       }
+
+      // kollar om ingen plats är markerade
+      
+      // om staden redan är markerad ska den avmarkeras
+
+      // om det finns en ledig markedCity ska stad som är klickad på bli
+      // markerad
+ 
+      // .........................................................
     }
   }
 
