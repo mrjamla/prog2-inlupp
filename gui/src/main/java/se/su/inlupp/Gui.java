@@ -2,6 +2,7 @@ package se.su.inlupp;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -20,24 +21,29 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Pair;
 
 public class Gui extends Application {
 
@@ -56,6 +62,8 @@ public class Gui extends Application {
   private Group cityCircle;
   private City markedCity1 = null;
   private City markedCity2 = null;
+  private Circle markedCircle1 = null;
+  private Circle markedCircle2 = null;
 
   @Override
   public void start(Stage primaryStage) throws IOException {
@@ -95,6 +103,8 @@ public class Gui extends Application {
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
     Button newConn = new Button("New Connection");
+    newConn.setOnAction(new NewConnectionHandler());
+
     Button changeConn = new Button("Change Connection");
 
     FlowPane buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
@@ -110,7 +120,7 @@ public class Gui extends Application {
     // skapar en karta som med en bildvy
     imageView = new ImageView();
     mapPane = new Pane(imageView);
-    mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter att fönsteruppdatering fungerar som
+    // mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter att fönsteruppdatering fungerar som
                                                           // önskat
 
     // skapar en behållare till alla kartkomponenter
@@ -236,7 +246,7 @@ public class Gui extends Application {
       String cityName = clickedLabel.getText();
       // tar fram samma stad ur grafen (modellen)
       City clickedCity = null;
-      // TODO: skapa hjälpmetod i ListGraph för att hämta en nod
+      // TODO: skapa hjälpmetod i ListGraph för att hämta en nod, om VPL tillåter det
       Set<City> cities = graph.getNodes();
       for (City city : cities) {
         if (city.getCityName().equals(cityName)) {
@@ -253,44 +263,162 @@ public class Gui extends Application {
 
       if(markedCity1 == null && markedCity2 == null){ // inget markerat sen tidigare, markera klickad stad
         markedCity1 = clickedCity;
-      } else if(clickedCity.equals(markedCity1)){ // hämtad stad redan markerad, ta bort markering
+        clickedCircle.setFill(Color.PURPLE);
+        markedCircle1 = clickedCircle;
+      } else if(clickedCity.equals(markedCity1)){ // klickad stad redan markerad, ta bort markering
         //TODO: ändra till att städer är lika omm koordinater och namn överensstämmer
         markedCity1 = null;
         clickedCircle.setFill(Color.PINK);
+        markedCircle1 = null;
       } else if(clickedCity.equals(markedCity2)){
         markedCity2 = null;
         clickedCircle.setFill(Color.PINK);
-      } else if(markedCity1 == null){ // klickad stad inte markerad, markera hämtad stad
+        markedCircle2 = null;
+      } else if(markedCity1 == null){ // klickad stad inte markerad, markera klickad stad
         markedCity1 = clickedCity;
         clickedCircle.setFill(Color.PURPLE);
+        markedCircle1 = clickedCircle;
       } else if(markedCity2 == null){
         markedCity2 = clickedCity;
         clickedCircle.setFill(Color.PURPLE);
+        markedCircle2 = clickedCircle;
       } else{ // markeringar upptagna, ignorera klickad stad
-        // nothin' 2 do, they be both unavailable, move on bro... move on
+        
       }
     }
   }
 
   class NewPlaceHandler implements EventHandler<ActionEvent> {
-
     @Override
     public void handle(ActionEvent event) {
       newPlace.setDisable(true);
       scene.setCursor(Cursor.CROSSHAIR);
 
       mapPane.setOnMouseClicked(new MapClickHandler());
+    }
+  }
 
+  private boolean twoPlacesSelected() {
+    boolean bothSelected = !(markedCity1 == null || markedCity2 == null);
+    if (!bothSelected) {
+      writeErrorAlert("Two places must be selected!");
+    }
+    return bothSelected;
+  }
+
+  private void clearSelectedPlaces() {
+    markedCity1 = null;
+    markedCity2 = null;
+    markedCircle1.setFill(Color.PINK);
+    markedCircle2.setFill(Color.PINK);
+  }
+
+  class NewConnectionHandler implements EventHandler<ActionEvent> {
+    public void handle(ActionEvent event) {
+      if (twoPlacesSelected()) {
+        try {
+          // TODO: en hjälpmetod i ListGraph (om den tillåts av VPL) som returnerar
+          // boolean
+          Edge<City> existingEdge = graph.getEdgeBetween(markedCity2, markedCity1);
+
+          if (existingEdge == null) {
+
+            // // TODO: Försök använda en färdig fönstertyp med rätt
+            // // symbol istället och skapa en subklass av den 
+            // Alert ConnectionPrompt = new Alert(AlertType.CONFIRMATION, contentText, ButtonType.OK, ButtonType.CANCEL);
+            // ConnectionPrompt.showAndWait();
+
+            // TODO: skriv en egen NewConnectionForm klass som ärver av Dialog<Edge<City>>
+            // ----------------------------------------------------------------------
+            Dialog<Pair<String, Integer>> dialog = new Dialog<>();
+            dialog.setTitle("Connection");
+            dialog.setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
+
+            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+            TextField nameField = new TextField();
+            nameField.setPromptText("Name");
+            TextField timeField = new TextField();
+            timeField.setPromptText("Travel time:");
+
+    
+            // Gör att endast 0-9 kan skrivas in i timeField
+            // timeField.textProperty().addListener((obs, oldVal, newVal) -> {
+            //   if (!newVal.matches("\\d*")) {
+            //     // writeErrorAlert("Incorrect input: Enter a valid time!");
+            //     timeField.setText(oldVal);
+            //   }
+            // });
+
+            GridPane grid = new GridPane();
+            grid.setHgap(12);
+            grid.setVgap(12);
+
+            grid.add(new Label("Name of connection:"), 0, 0);
+            grid.add(nameField, 1, 0);
+            grid.add(new Label("Travel time:"), 0, 1);
+            grid.add(timeField, 1, 1);
+
+            dialog.getDialogPane().setContent(grid);
+
+            // Den här behövdes för att dialog.showAndWait annars returnerade en ButtonType
+            // Istället för en Pair med name och time.
+            dialog.setResultConverter(dialogButton -> {
+              if (dialogButton == ButtonType.OK) {
+                String name = nameField.getText();
+                String timeText = timeField.getText();
+
+                if (name.isBlank()) {
+                  writeErrorAlert("Incorrect input:\nEnter a name!");
+                  return null;
+                } else if (timeText.isBlank()) {
+                  writeErrorAlert("Incorrect input:\nEnter a time!");
+                  return null;
+                } else if (!timeText.matches("\\d+")) {
+                  writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
+                  return null;
+                } else {
+                  int time = Integer.parseInt(timeText);
+                  return new Pair<>(name, time);
+                }
+              }
+              return null;
+            });
+            // --------------------------------------------------------------
+            Optional<Pair<String, Integer>> result = dialog.showAndWait();
+
+            if (result.isPresent()) {
+              Pair<String, Integer> connectionInput = result.get();
+              String connectionName = connectionInput.getKey();
+              int connectionTime = connectionInput.getValue();
+              graph.connect(markedCity1, markedCity2, connectionName, connectionTime);
+              // TODO: hjälpmetod drawConnection() som ritar ut en linje på kartan och kolla upp varför circle.getCenterX/Y() inte ger rätt koordinater
+              // Line line = new Line(markedCityCircle1X, markedCityCircle1Y, markedCityCircle2X, markedCityCircle2Y);
+              Line line = new Line(markedCity1.getX(), markedCity1.getY(), markedCity2.getX(), markedCity2.getY());
+              mapPane.getChildren().add(1, line); // ritar linje först och under andra noder på positionen
+            }
+
+            // hjälpmetod för nollställning av markeringar
+            clearSelectedPlaces();
+
+          } else {
+            writeErrorAlert("There already exists a connection between these places!");
+          }
+        } catch (NoSuchElementException ex) {
+          System.err.println("Two selected nodes expected, but not found!");
+          ex.printStackTrace();
+        }
+      } else {
+        // writeErrorAlert("Two places must be selected!");
+      }
     }
   }
 
   private class ExitItemHandler implements EventHandler<ActionEvent> {
-
     @Override
     public void handle(ActionEvent arg0) {
       stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
     }
-
   }
 
   class ExitHandler implements EventHandler<WindowEvent> {
