@@ -44,7 +44,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
-import javafx.util.Pair;
 
 public class Gui extends Application {
 
@@ -316,11 +315,17 @@ public class Gui extends Application {
     markedCircle2.setFill(Color.PINK);
   }
 
+  // TODO: Försök använda en färdig fönstertyp med rätt symbol istället och skapa
+  // en subklass av den
+  // Alert newConnectionForm = new Alert(AlertType.CONFIRMATION, contentText,
+  // ButtonType.OK, ButtonType.CANCEL);
+  // newConnectionForm.showAndWait();
   private class NewConnectionForm extends Dialog<Edge<City>> {
     private TextField nameField = new TextField();
     private TextField timeField = new TextField();
 
     public NewConnectionForm() {
+      // Skapa fönsterkomponenter
       setTitle("Connection");
       setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
       nameField.setPromptText("Name");
@@ -338,10 +343,11 @@ public class Gui extends Application {
       getDialogPane().setContent(grid);
       getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-      // Den här behövdes för att dialog.showAndWait annars returnerade en ButtonType 
+      // Den här behövdes för att dialog.showAndWait annars returnerade en ButtonType
       // istället för en Pair med name och time.
-      
-      // Hantera det som skrivits in och skicka tillbaka ett resultat från dialogfönstret
+
+      // Hantera det som skrivits in och skicka tillbaka ett resultat från
+      // dialogfönstret
       setResultConverter(
           new Callback<ButtonType, Edge<City>>() {
             @Override
@@ -387,78 +393,11 @@ public class Gui extends Application {
           Edge<City> existingEdge = graph.getEdgeBetween(markedCity2, markedCity1);
 
           if (existingEdge == null) {
-
-            // // TODO: Försök använda en färdig fönstertyp med rätt
-            // // symbol istället och skapa en subklass av den
-            // Alert ConnectionPrompt = new Alert(AlertType.CONFIRMATION, contentText,
-            // ButtonType.OK, ButtonType.CANCEL);
-            // ConnectionPrompt.showAndWait();
-
-            // TODO: skriv en egen NewConnectionForm klass som ärver av Dialog<Edge<City>>
             NewConnectionForm dialog = new NewConnectionForm();
-
-            // ----------------------------------------------------------------------
-            // Dialog<Pair<String, Integer>> dialog = new Dialog<>();
-            // dialog.setTitle("Connection");
-            // dialog.setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
-
-            // dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-            // TextField nameField = new TextField();
-            // nameField.setPromptText("Name");
-            // TextField timeField = new TextField();
-            // timeField.setPromptText("Travel time:");
-
-            // Gör att endast 0-9 kan skrivas in i timeField
-            // timeField.textProperty().addListener((obs, oldVal, newVal) -> {
-            // if (!newVal.matches("\\d*")) {
-            // // writeErrorAlert("Incorrect input: Enter a valid time!");
-            // timeField.setText(oldVal);
-            // }
-            // });
-
-            // GridPane grid = new GridPane();
-            // grid.setHgap(12);
-            // grid.setVgap(12);
-
-            // grid.add(new Label("Name of connection:"), 0, 0);
-            // grid.add(nameField, 1, 0);
-            // grid.add(new Label("Travel time:"), 0, 1);
-            // grid.add(timeField, 1, 1);
-
-            // dialog.getDialogPane().setContent(grid);
-
-            // Den här behövdes för att dialog.showAndWait annars returnerade en ButtonType
-            // Istället för en Pair med name och time.
-            // dialog.setResultConverter(dialogButton -> {
-            //   if (dialogButton == ButtonType.OK) {
-            //     String name = nameField.getText();
-            //     String timeText = timeField.getText();
-
-            //     if (name.isBlank()) {
-            //       writeErrorAlert("Incorrect input:\nEnter a name!");
-            //       return null;
-            //     } else if (timeText.isBlank()) {
-            //       writeErrorAlert("Incorrect input:\nEnter a time!");
-            //       return null;
-            //     } else if (!timeText.matches("\\d+")) {
-            //       writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
-            //       return null;
-            //     } else {
-            //       int time = Integer.parseInt(timeText);
-            //       return new Pair<>(name, time);
-            //     }
-            //   }
-            //   return null;
-            // });
-            // --------------------------------------------------------------
-            // Optional<Pair<String, Integer>> result = dialog.showAndWait();
             Optional<Edge<City>> result = dialog.showAndWait();
+
             if (result.isPresent()) {
-              // Pair<String, Integer> connectionInput = result.get();
-              // String connectionName = connectionInput.getKey();
-              // int connectionTime = connectionInput.getValue();
-              String connectionName = result.get().getName(); 
+              String connectionName = result.get().getName();
               int connectionTime = result.get().getWeight();
               graph.connect(markedCity1, markedCity2, connectionName, connectionTime);
               // TODO: hjälpmetod drawConnection() som ritar ut en linje på kartan och kolla
@@ -468,7 +407,6 @@ public class Gui extends Application {
               Line line = new Line(markedCity1.getX(), markedCity1.getY(), markedCity2.getX(), markedCity2.getY());
               mapPane.getChildren().add(1, line); // ritar linje först och under andra noder på positionen
             }
-
             // hjälpmetod för nollställning av markeringar
             clearSelectedPlaces();
 
