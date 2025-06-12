@@ -43,6 +43,7 @@ import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Callback;
 import javafx.util.Pair;
 
 public class Gui extends Application {
@@ -59,7 +60,6 @@ public class Gui extends Application {
 
   private boolean edited;
 
-  private Group cityCircle;
   private City markedCity1 = null;
   private City markedCity2 = null;
   private Circle markedCircle1 = null;
@@ -120,8 +120,9 @@ public class Gui extends Application {
     // skapar en karta som med en bildvy
     imageView = new ImageView();
     mapPane = new Pane(imageView);
-    // mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter att fönsteruppdatering fungerar som
-                                                          // önskat
+    // mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter
+    // att fönsteruppdatering fungerar som
+    // önskat
 
     // skapar en behållare till alla kartkomponenter
     FlowPane centerPane = new FlowPane(mapPane);
@@ -205,21 +206,23 @@ public class Gui extends Application {
           double x = event.getX();
           double y = event.getY();
 
-          Circle circle = new Circle(0, 0, 15);
+          Circle circle = new Circle(0, 0, 12);
           circle.setFill(Color.PINK);
 
           Label city = new Label(placeName);
           city.setFont(new Font("Calibri", 18));
+          city.setLabelFor(circle);
 
-          cityCircle = new Group();
+          Group cityCircle = new Group();
           cityCircle.getChildren().addAll(circle, city);
           cityCircle.setOnMouseClicked(new CityCircleClickHandler());
 
           mapPane.getChildren().add(cityCircle);
-          cityCircle.relocate(x - 15, y - 15);
+          cityCircle.relocate(x - 12, y - 12); // flyttar cityCircle så övre vänstra hörnet på komponenten hamnar på
+                                               // koordinater x-12 och y-12 i mapPanes koordinatsystem
 
-          City cityObject = new City(placeName, x, y);
-          graph.add(cityObject);
+          City cityNode = new City(placeName, x, y);
+          graph.add(cityNode);
           // System.err.println(graph);
 
         }
@@ -257,33 +260,33 @@ public class Gui extends Application {
 
       // potentiell hjälpklass: markCityIfPossible(City city)
       // Just in case...
-      if(clickedCity == null){
+      if (clickedCity == null) {
         throw new NullPointerException("City-node expected, null found!");
       }
 
-      if(markedCity1 == null && markedCity2 == null){ // inget markerat sen tidigare, markera klickad stad
+      if (markedCity1 == null && markedCity2 == null) { // inget markerat sen tidigare, markera klickad stad
         markedCity1 = clickedCity;
-        clickedCircle.setFill(Color.PURPLE);
         markedCircle1 = clickedCircle;
-      } else if(clickedCity.equals(markedCity1)){ // klickad stad redan markerad, ta bort markering
-        //TODO: ändra till att städer är lika omm koordinater och namn överensstämmer
+        markedCircle1.setFill(Color.PURPLE);
+      } else if (clickedCity.equals(markedCity1)) { // klickad stad redan markerad, ta bort markering
+        // TODO: ändra till att städer är lika omm koordinater och namn överensstämmer
         markedCity1 = null;
-        clickedCircle.setFill(Color.PINK);
+        markedCircle1.setFill(Color.PINK);
         markedCircle1 = null;
-      } else if(clickedCity.equals(markedCity2)){
+      } else if (clickedCity.equals(markedCity2)) {
         markedCity2 = null;
-        clickedCircle.setFill(Color.PINK);
+        markedCircle2.setFill(Color.PINK);
         markedCircle2 = null;
-      } else if(markedCity1 == null){ // klickad stad inte markerad, markera klickad stad
+      } else if (markedCity1 == null) { // klickad stad inte markerad, markera klickad stad
         markedCity1 = clickedCity;
-        clickedCircle.setFill(Color.PURPLE);
         markedCircle1 = clickedCircle;
-      } else if(markedCity2 == null){
+        markedCircle1.setFill(Color.PURPLE);
+      } else if (markedCity2 == null) {
         markedCity2 = clickedCity;
-        clickedCircle.setFill(Color.PURPLE);
         markedCircle2 = clickedCircle;
-      } else{ // markeringar upptagna, ignorera klickad stad
-        
+        markedCircle2.setFill(Color.PURPLE);
+      } else { // markeringar upptagna, ignorera klickad stad
+
       }
     }
   }
@@ -313,6 +316,68 @@ public class Gui extends Application {
     markedCircle2.setFill(Color.PINK);
   }
 
+  private class NewConnectionForm extends Dialog<Edge<City>> {
+    private TextField nameField = new TextField();
+    private TextField timeField = new TextField();
+
+    public NewConnectionForm() {
+      setTitle("Connection");
+      setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
+      nameField.setPromptText("Name");
+      timeField.setPromptText("Travel time:");
+
+      GridPane grid = new GridPane();
+      grid.setHgap(12);
+      grid.setVgap(12);
+      grid.add(new Label("Name of connection:"), 0, 0);
+      grid.add(nameField, 1, 0);
+      grid.add(new Label("Travel time:"), 0, 1);
+      grid.add(timeField, 1, 1);
+
+      // Rita dialogfönstret
+      getDialogPane().setContent(grid);
+      getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+      // Den här behövdes för att dialog.showAndWait annars returnerade en ButtonType 
+      // istället för en Pair med name och time.
+      
+      // Hantera det som skrivits in och skicka tillbaka ett resultat från dialogfönstret
+      setResultConverter(
+          new Callback<ButtonType, Edge<City>>() {
+            @Override
+            public Edge<City> call(ButtonType dialogButton) {
+              if (dialogButton == ButtonType.OK) {
+                try {
+                  String name = nameField.getText();
+                  String timeText = timeField.getText();
+
+                  if (name.isBlank()) {
+                    writeErrorAlert("Incorrect input:\nEnter a name!");
+                    return null;
+                  } else if (timeText.isBlank()) {
+                    writeErrorAlert("Incorrect input:\nEnter a time!");
+                    return null;
+                  } else if (!timeText.matches("\\d+")) {
+                    writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
+                    return null;
+                  } else {
+                    int time = Integer.parseInt(timeText);
+                    return new ListEdge<>(markedCity2, name, time);
+                  }
+                } catch (NumberFormatException e) {
+                  System.err.println("Something went wrong when reading time from NewConnectionForm!");
+                  return null;
+                }
+              } else {
+                // om denna metod returnerar null innebär det att showAndWait() returnerar en
+                // tom Optional<Edge<City>
+                return null;
+              }
+            }
+          });
+    }
+  }
+
   class NewConnectionHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
       if (twoPlacesSelected()) {
@@ -324,76 +389,82 @@ public class Gui extends Application {
           if (existingEdge == null) {
 
             // // TODO: Försök använda en färdig fönstertyp med rätt
-            // // symbol istället och skapa en subklass av den 
-            // Alert ConnectionPrompt = new Alert(AlertType.CONFIRMATION, contentText, ButtonType.OK, ButtonType.CANCEL);
+            // // symbol istället och skapa en subklass av den
+            // Alert ConnectionPrompt = new Alert(AlertType.CONFIRMATION, contentText,
+            // ButtonType.OK, ButtonType.CANCEL);
             // ConnectionPrompt.showAndWait();
 
             // TODO: skriv en egen NewConnectionForm klass som ärver av Dialog<Edge<City>>
+            NewConnectionForm dialog = new NewConnectionForm();
+
             // ----------------------------------------------------------------------
-            Dialog<Pair<String, Integer>> dialog = new Dialog<>();
-            dialog.setTitle("Connection");
-            dialog.setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
+            // Dialog<Pair<String, Integer>> dialog = new Dialog<>();
+            // dialog.setTitle("Connection");
+            // dialog.setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
 
-            dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+            // dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-            TextField nameField = new TextField();
-            nameField.setPromptText("Name");
-            TextField timeField = new TextField();
-            timeField.setPromptText("Travel time:");
+            // TextField nameField = new TextField();
+            // nameField.setPromptText("Name");
+            // TextField timeField = new TextField();
+            // timeField.setPromptText("Travel time:");
 
-    
             // Gör att endast 0-9 kan skrivas in i timeField
             // timeField.textProperty().addListener((obs, oldVal, newVal) -> {
-            //   if (!newVal.matches("\\d*")) {
-            //     // writeErrorAlert("Incorrect input: Enter a valid time!");
-            //     timeField.setText(oldVal);
-            //   }
+            // if (!newVal.matches("\\d*")) {
+            // // writeErrorAlert("Incorrect input: Enter a valid time!");
+            // timeField.setText(oldVal);
+            // }
             // });
 
-            GridPane grid = new GridPane();
-            grid.setHgap(12);
-            grid.setVgap(12);
+            // GridPane grid = new GridPane();
+            // grid.setHgap(12);
+            // grid.setVgap(12);
 
-            grid.add(new Label("Name of connection:"), 0, 0);
-            grid.add(nameField, 1, 0);
-            grid.add(new Label("Travel time:"), 0, 1);
-            grid.add(timeField, 1, 1);
+            // grid.add(new Label("Name of connection:"), 0, 0);
+            // grid.add(nameField, 1, 0);
+            // grid.add(new Label("Travel time:"), 0, 1);
+            // grid.add(timeField, 1, 1);
 
-            dialog.getDialogPane().setContent(grid);
+            // dialog.getDialogPane().setContent(grid);
 
             // Den här behövdes för att dialog.showAndWait annars returnerade en ButtonType
             // Istället för en Pair med name och time.
-            dialog.setResultConverter(dialogButton -> {
-              if (dialogButton == ButtonType.OK) {
-                String name = nameField.getText();
-                String timeText = timeField.getText();
+            // dialog.setResultConverter(dialogButton -> {
+            //   if (dialogButton == ButtonType.OK) {
+            //     String name = nameField.getText();
+            //     String timeText = timeField.getText();
 
-                if (name.isBlank()) {
-                  writeErrorAlert("Incorrect input:\nEnter a name!");
-                  return null;
-                } else if (timeText.isBlank()) {
-                  writeErrorAlert("Incorrect input:\nEnter a time!");
-                  return null;
-                } else if (!timeText.matches("\\d+")) {
-                  writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
-                  return null;
-                } else {
-                  int time = Integer.parseInt(timeText);
-                  return new Pair<>(name, time);
-                }
-              }
-              return null;
-            });
+            //     if (name.isBlank()) {
+            //       writeErrorAlert("Incorrect input:\nEnter a name!");
+            //       return null;
+            //     } else if (timeText.isBlank()) {
+            //       writeErrorAlert("Incorrect input:\nEnter a time!");
+            //       return null;
+            //     } else if (!timeText.matches("\\d+")) {
+            //       writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
+            //       return null;
+            //     } else {
+            //       int time = Integer.parseInt(timeText);
+            //       return new Pair<>(name, time);
+            //     }
+            //   }
+            //   return null;
+            // });
             // --------------------------------------------------------------
-            Optional<Pair<String, Integer>> result = dialog.showAndWait();
-
+            // Optional<Pair<String, Integer>> result = dialog.showAndWait();
+            Optional<Edge<City>> result = dialog.showAndWait();
             if (result.isPresent()) {
-              Pair<String, Integer> connectionInput = result.get();
-              String connectionName = connectionInput.getKey();
-              int connectionTime = connectionInput.getValue();
+              // Pair<String, Integer> connectionInput = result.get();
+              // String connectionName = connectionInput.getKey();
+              // int connectionTime = connectionInput.getValue();
+              String connectionName = result.get().getName(); 
+              int connectionTime = result.get().getWeight();
               graph.connect(markedCity1, markedCity2, connectionName, connectionTime);
-              // TODO: hjälpmetod drawConnection() som ritar ut en linje på kartan och kolla upp varför circle.getCenterX/Y() inte ger rätt koordinater
-              // Line line = new Line(markedCityCircle1X, markedCityCircle1Y, markedCityCircle2X, markedCityCircle2Y);
+              // TODO: hjälpmetod drawConnection() som ritar ut en linje på kartan och kolla
+              // upp varför circle.getCenterX/Y() inte ger rätt koordinater
+              // Line line = new Line(markedCityCircle1X, markedCityCircle1Y,
+              // markedCityCircle2X, markedCityCircle2Y);
               Line line = new Line(markedCity1.getX(), markedCity1.getY(), markedCity2.getX(), markedCity2.getY());
               mapPane.getChildren().add(1, line); // ritar linje först och under andra noder på positionen
             }
