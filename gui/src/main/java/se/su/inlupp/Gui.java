@@ -158,7 +158,7 @@ public class Gui extends Application {
   }
 
   private boolean checkIfNull(String string) {
-    return string == null || string.trim().isEmpty();
+    return string == null || string.isBlank();
   }
 
   private void writeErrorAlert(String prompt) {
@@ -198,35 +198,39 @@ public class Gui extends Application {
       if (result.isPresent()) {
 
         String placeName = result.get();
-
+        // Behövs det här villkorssatsen, result.get() returnerar inte null utan kastar en exception?
         if (checkIfNull(placeName)) {
-          writeErrorAlert("Name of place can not be null!");
+          writeErrorAlert("Incorrect input: Enter a name!");
         } else {
+          // Hämta koordinater på muspekaren vid klick
           double x = event.getX();
           double y = event.getY();
 
-          Circle circle = new Circle(0, 0, 12);
+          // Skapa cirkel
+          Circle circle = new Circle(x, y, 12);
           circle.setFill(Color.PINK);
 
+          // Skapa ettiket
           Label city = new Label(placeName);
-          city.setFont(new Font("Calibri", 18));
+          city.setLayoutX(x+6);
+          city.setLayoutY(y+6);
+          city.setStyle("fx-font-family: 'Calibri'; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: black;");
           city.setLabelFor(circle);
 
+          // Skapa behållare för stadens etikett och cirkel
           Group cityCircle = new Group();
           cityCircle.getChildren().addAll(circle, city);
           cityCircle.setOnMouseClicked(new CityCircleClickHandler());
 
+          // Lägg in platsbehållare i kartans behållare
           mapPane.getChildren().add(cityCircle);
-          cityCircle.relocate(x - 12, y - 12); // flyttar cityCircle så övre vänstra hörnet på komponenten hamnar på
-                                               // koordinater x-12 och y-12 i mapPanes koordinatsystem
 
+          // Skapa en stadnod och lägg in grafmodellen
           City cityNode = new City(placeName, x, y);
           graph.add(cityNode);
-          // System.err.println(graph);
-
-        }
-      } else {
-        event.consume();
+        } 
+      // } else {
+        // event.consume();
       }
 
       scene.setCursor(Cursor.DEFAULT);
@@ -251,7 +255,7 @@ public class Gui extends Application {
       // TODO: skapa hjälpmetod i ListGraph för att hämta en nod, om VPL tillåter det
       Set<City> cities = graph.getNodes();
       for (City city : cities) {
-        if (city.getCityName().equals(cityName)) {
+        if (city.getCityName().equals(cityName) && city.getX() == clickedCircle.getCenterX() && city.getY() == clickedCircle.getCenterY()) {
           clickedCity = city;
           break;
         }
