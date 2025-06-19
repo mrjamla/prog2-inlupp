@@ -99,11 +99,11 @@ public class Gui extends Application {
     // skapar en knapplist
     Button findPath = new Button("Find Path");
     Button showConn = new Button("Show Connection");
+    showConn.setOnAction(new ShowConnectionHandler());
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
     Button newConn = new Button("New Connection");
     newConn.setOnAction(new NewConnectionHandler());
-
     Button changeConn = new Button("Change Connection");
 
     FlowPane buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
@@ -387,7 +387,62 @@ public class Gui extends Application {
           });
     }
   }
+  
+  class ShowConnectionHandler implements EventHandler<ActionEvent>{
+    public void handle(ActionEvent event){
+      
+      if(twoPlacesSelected()){
+        String cityName1 = markedCity1.getCityName();
+        String cityName2 = markedCity2.getCityName();
+        
+        if((graph.getEdgeBetween(markedCity1, markedCity2)) != null){
+          Edge<City> connection = graph.getEdgeBetween(markedCity1, markedCity2);
+          String connectionName = connection.getName();
+          int connectionTime = connection.getWeight();
 
+          Alert alert = new Alert(AlertType.INFORMATION);
+          alert.setTitle("Connection");
+          alert.setHeaderText("Connection from " + cityName1 + " to " + cityName2);
+        
+          GridPane grid = new GridPane();
+          grid.setHgap(12);
+          grid.setVgap(12);
+          grid.setPadding(new Insets(12));
+
+          Label nameLabel = new Label("Name of connection:");
+          TextField nameField = new TextField(connectionName);
+          nameField.setEditable(false);
+
+          Label timeLabel = new Label("Time:");
+          TextField timeField = new TextField(String.valueOf(connectionTime)); 
+          timeField.setEditable(false);
+
+          grid.add(nameLabel,0,0);
+          grid.add(nameField,1,0);
+          grid.add(timeLabel,0,1);
+          grid.add(timeField,1,1);
+
+          alert.getDialogPane().setContent(grid);
+
+          alert.showAndWait();
+
+          clearSelectedPlaces();
+
+        }else{
+          Alert alert = new Alert(AlertType.ERROR);
+          alert.setTitle("Error!");
+          alert.setHeaderText(null);
+          alert.setContentText("There exists no connection between " + cityName1 + " and " + cityName2 + "!");
+          alert.showAndWait();
+        }
+
+      }else{
+        //Felmeddelande för att två platser inte har valts behövs inte?
+        //eftersom det finns i twoPlacesSelected() ??
+      }
+    }
+  }
+  
   class NewConnectionHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
       if (twoPlacesSelected()) {
