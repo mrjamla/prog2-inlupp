@@ -105,6 +105,7 @@ public class Gui extends Application {
     Button newConn = new Button("New Connection");
     newConn.setOnAction(new NewConnectionHandler());
     Button changeConn = new Button("Change Connection");
+    changeConn.setOnAction(new ChangeConnectionHandler());
 
     FlowPane buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
     buttonPane.setAlignment(Pos.CENTER);
@@ -388,6 +389,76 @@ public class Gui extends Application {
     }
   }
   
+  class ChangeConnectionHandler implements EventHandler<ActionEvent>{
+    public void handle(ActionEvent event){
+
+      if(twoPlacesSelected()){
+        String cityName1 = markedCity1.getCityName();
+        String cityName2 = markedCity2.getCityName();
+        int time = 0;
+
+        if((graph.getEdgeBetween(markedCity1, markedCity2)) != null){
+          Edge<City> connection = graph.getEdgeBetween(markedCity1, markedCity2);
+          String connectionName = connection.getName();
+
+          Alert alert = new Alert(AlertType.INFORMATION);
+          alert.setTitle("Connection");
+          alert.setHeaderText("Connection from " + cityName1 + " to " + cityName2);
+
+          GridPane grid = new GridPane();
+          grid.setHgap(12);
+          grid.setVgap(12);
+          grid.setPadding(new Insets(12));
+
+          Label nameLabel = new Label("Name of connection:");
+          TextField nameField = new TextField(connectionName);
+          nameField.setEditable(false);
+
+          Label timeLabel = new Label("Time:");
+          TextField timeField = new TextField(" "); 
+          timeField.setEditable(true);
+          timeField.textProperty().addListener((observable, oldValue, newValue) ->{
+            if(!newValue.matches("\\d*")){
+              timeField.setText(newValue.replaceAll("[^\\d]" , ""));
+            }
+          });
+
+          grid.add(nameLabel,0,0);
+          grid.add(nameField,1,0);
+          grid.add(timeLabel,0,1);
+          grid.add(timeField,1,1);
+
+          alert.getDialogPane().setContent(grid);
+
+          alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+
+          Optional<ButtonType> result = alert.showAndWait();
+          if(result.isPresent() && result.get() == ButtonType.OK){
+            String timeText = timeField.getText();
+            try{ 
+              time = Integer.parseInt(timeText);
+              graph.setConnectionWeight(markedCity1, markedCity2, time);
+            }catch (NumberFormatException e){
+              System.out.println("Invalid number input.");
+            }
+
+          }
+
+          clearSelectedPlaces();
+
+        }else{
+          writeErrorAlert("There is no connection to change between these cities.");
+          clearSelectedPlaces();
+        }
+
+      }else{
+        //Felmeddelande för att två platser måste markeras.
+        //Finns redan i twoPlacesSelected()
+      }
+
+    }
+  }
+  
   class ShowConnectionHandler implements EventHandler<ActionEvent>{
     public void handle(ActionEvent event){
       
@@ -423,17 +494,12 @@ public class Gui extends Application {
           grid.add(timeField,1,1);
 
           alert.getDialogPane().setContent(grid);
-
           alert.showAndWait();
-
           clearSelectedPlaces();
 
         }else{
-          Alert alert = new Alert(AlertType.ERROR);
-          alert.setTitle("Error!");
-          alert.setHeaderText(null);
-          alert.setContentText("There exists no connection between " + cityName1 + " and " + cityName2 + "!");
-          alert.showAndWait();
+          writeErrorAlert("There exists no connection between " + cityName1 + " and " + cityName2 + "!");
+          clearSelectedPlaces();
         }
 
       }else{
