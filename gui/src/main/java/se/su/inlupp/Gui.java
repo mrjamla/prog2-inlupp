@@ -42,7 +42,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
-import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -124,9 +123,6 @@ public class Gui extends Application {
     // skapar en karta som med en bildvy
     imageView = new ImageView();
     mapPane = new Pane(imageView);
-    // mapPane.setStyle("-fx-background-color: lightblue;"); // TODO: ta bort efter
-    // att fönsteruppdatering fungerar som
-    // önskat
 
     // skapar en behållare till alla kartkomponenter
     FlowPane centerPane = new FlowPane(mapPane);
@@ -175,6 +171,7 @@ public class Gui extends Application {
   }
 
   class NewMapItemHandler implements EventHandler<ActionEvent> {
+    @Override
     public void handle(ActionEvent event) {
       // TODO: kontroll för att se om ändringar finns
 
@@ -203,10 +200,11 @@ public class Gui extends Application {
       if (result.isPresent()) {
 
         String placeName = result.get();
-        // Behövs det här villkorssatsen, result.get() returnerar inte null utan kastar en exception?
         if (checkIfNull(placeName)) {
           writeErrorAlert("Incorrect input: Enter a name!");
         } else {
+          // Potentiell hjälpklass createPlaceOnMap(name, x, y)
+
           // Hämta koordinater på muspekaren vid klick
           double x = event.getX();
           double y = event.getY();
@@ -257,7 +255,7 @@ public class Gui extends Application {
       String cityName = clickedLabel.getText();
       // tar fram samma stad ur grafen (modellen)
       City clickedCity = null;
-      // TODO: skapa hjälpmetod i ListGraph för att hämta en nod, om VPL tillåter det
+      // Potentiell hjälpmetod i ListGraph för att hämta en nod, om VPL tillåter det
       Set<City> cities = graph.getNodes();
       for (City city : cities) {
         if (city.getCityName().equals(cityName) && city.getX() == clickedCircle.getCenterX() && city.getY() == clickedCircle.getCenterY()) {
@@ -266,18 +264,17 @@ public class Gui extends Application {
         }
       }
 
-      // potentiell hjälpklass: markCityIfPossible(City city)
       // Just in case...
       if (clickedCity == null) {
         throw new NullPointerException("City-node expected, null found!");
       }
+      // potentiell hjälpklass: markCityIfPossible(City city) alternativt mark(City city)/unmark(City city)
 
       if (markedCity1 == null && markedCity2 == null) { // inget markerat sen tidigare, markera klickad stad
         markedCity1 = clickedCity;
         markedCircle1 = clickedCircle;
         markedCircle1.setFill(Color.PURPLE);
       } else if (clickedCity.equals(markedCity1)) { // klickad stad redan markerad, ta bort markering
-        // TODO: ändra till att städer är lika omm koordinater och namn överensstämmer
         markedCity1 = null;
         markedCircle1.setFill(Color.PINK);
         markedCircle1 = null;
@@ -557,6 +554,7 @@ public class Gui extends Application {
   }
   
   class NewConnectionHandler implements EventHandler<ActionEvent> {
+    @Override
     public void handle(ActionEvent event) {
       if (twoPlacesSelected()) {
         try {
@@ -572,8 +570,8 @@ public class Gui extends Application {
               String connectionName = result.get().getName();
               int connectionTime = result.get().getWeight();
               graph.connect(markedCity1, markedCity2, connectionName, connectionTime);
-              // TODO: hjälpmetod drawConnection() som ritar ut en linje på kartan och kolla
-              // upp varför circle.getCenterX/Y() inte ger rätt koordinater
+              // Potentiell hjälpmetod drawConnection() som ritar ut en linje på kartan
+              // TODO: Kolla upp varför circle.getCenterX/Y() inte ger rätt koordinater
               // Line line = new Line(markedCityCircle1X, markedCityCircle1Y,
               // markedCityCircle2X, markedCityCircle2Y);
               Line line = new Line(markedCity1.getX(), markedCity1.getY(), markedCity2.getX(), markedCity2.getY());
@@ -603,6 +601,7 @@ public class Gui extends Application {
   }
 
   class ExitHandler implements EventHandler<WindowEvent> {
+    @Override
     public void handle(WindowEvent event) {
       if (edited) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
