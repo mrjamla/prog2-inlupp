@@ -2,6 +2,8 @@ package se.su.inlupp;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +28,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
@@ -98,6 +101,7 @@ public class Gui extends Application {
 
     // skapar en knapplist
     Button findPath = new Button("Find Path");
+    findPath.setOnAction(new FindPathHandler());
     Button showConn = new Button("Show Connection");
     showConn.setOnAction(new ShowConnectionHandler());
     newPlace = new Button("New Place");
@@ -506,6 +510,49 @@ public class Gui extends Application {
         //Felmeddelande för att två platser inte har valts behövs inte?
         //eftersom det finns i twoPlacesSelected() ??
       }
+    }
+  }
+  
+  class FindPathHandler implements EventHandler<ActionEvent>{
+    public void handle(ActionEvent event){
+      List<Edge<City>> path = new LinkedList<>();
+      int edgeWeightTotal = 0;
+      
+      if(twoPlacesSelected()){
+        if(graph.getPath(markedCity1, markedCity2) != null){
+          path = graph.getPath(markedCity1, markedCity2);
+
+          BorderPane borderPane = new BorderPane();
+          TextArea textArea = new TextArea("");
+          borderPane.setCenter(textArea);
+
+          for(Edge<City> e : path){
+            int edgeWeight = e.getWeight();
+            String textLine = "to " + e.getDestination().getCityName() + " by " + e.getName() + " takes " + String.valueOf(edgeWeight) + "\n";
+            edgeWeightTotal += edgeWeight;
+            textArea.appendText(textLine);
+          }
+
+          textArea.appendText("Total time: " + String.valueOf(edgeWeightTotal));
+          textArea.setEditable(false);
+
+          Alert alert = new Alert(AlertType.INFORMATION);
+          alert.setTitle("Message");
+          alert.setHeaderText("The Path from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
+          alert.getDialogPane().setContent(borderPane);
+          alert.showAndWait();
+          
+          clearSelectedPlaces();
+
+        }else{
+          writeErrorAlert("There is no possible path from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
+          clearSelectedPlaces();
+        }
+
+      }else{
+        //Felmeddelande för att två platser inte är valda finns i twoPlacesSelected()
+      }
+
     }
   }
   
