@@ -186,7 +186,7 @@ public class Gui extends Application {
         
         if (file != null) {
           changeMap(file.toURI().toString());
-          
+
           edited = false;
         }
       }
@@ -333,7 +333,7 @@ public class Gui extends Application {
   }
 
   // TODO: Försök använda en färdig fönstertyp med rätt symbol istället
-  private Edge<City> showConnectionForm(String connectionName, int time, boolean nameEditable, boolean timeEditable) {
+  private Optional<Edge<City>> showConnectionForm(String connectionName, int time, boolean nameEditable, boolean timeEditable) {
     Alert alert = new Alert(AlertType.CONFIRMATION);
     alert.setTitle("Connection");
     alert.setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
@@ -348,7 +348,7 @@ public class Gui extends Application {
 
     Label timeLabel = new Label("Travel time:");
     TextField timeField;
-    if (time >= 0)
+    if (time > 0)
       timeField = new TextField(String.valueOf(time));
     else
       timeField = new TextField("");
@@ -376,11 +376,11 @@ public class Gui extends Application {
     Optional<ButtonType> result = alert.showAndWait();
 
     if(result.isPresent() && result.get().equals(ButtonType.OK)){
-      String nameText = nameField.getText();
       if(nameEditable){
+        String nameText = nameField.getText();
         if(nameText.isBlank()){
           writeErrorAlert("Incorrect input:\nEnter a name!");
-          return null;
+          return Optional.empty();
         } else {
           connectionName = nameText;
         }
@@ -390,16 +390,16 @@ public class Gui extends Application {
         String timeText = timeField.getText();
         if(timeText.isBlank()){
           writeErrorAlert("Incorrect input:\nEnter a time!");
-          return null;
+          return Optional.empty();
         } else if (!timeText.matches("\\d+")) {
           writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
-          return null;
+          return Optional.empty();
         } else{
           time = Integer.parseInt(timeText);
         }
       }
       
-      return new ListEdge<>(markedCity2, connectionName, time);
+      return Optional.of(new ListEdge<>(markedCity2, connectionName, time));
     }
     // Hantera det som skrivits in och skicka tillbaka ett resultat från
     // dialogfönstret
@@ -437,7 +437,7 @@ public class Gui extends Application {
     //       }
     //     });
 
-      return null;
+      return Optional.empty();
   }
 
   private class NewConnectionForm extends Dialog<Edge<City>> {
@@ -679,8 +679,8 @@ public class Gui extends Application {
           Edge<City> existingEdge = graph.getEdgeBetween(markedCity2, markedCity1);
 
           if (existingEdge == null) {
-            NewConnectionForm dialog = new NewConnectionForm();
-            Optional<Edge<City>> result = dialog.showAndWait();
+            // NewConnectionForm dialog = new NewConnectionForm();
+            Optional<Edge<City>> result = showConnectionForm(null, 0, true, true); // dialog.showAndWait();
 
             if (result.isPresent()) {
               String connectionName = result.get().getName();
