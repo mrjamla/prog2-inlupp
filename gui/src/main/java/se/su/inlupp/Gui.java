@@ -215,8 +215,8 @@ public class Gui extends Application {
 
           // Skapa ettiket
           Label city = new Label(placeName);
-          city.setLayoutX(x+6);
-          city.setLayoutY(y+6);
+          city.setLayoutX(x + 6);
+          city.setLayoutY(y + 6);
           city.setStyle("fx-font-family: 'Calibri'; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: black;");
           city.setLabelFor(circle);
 
@@ -231,8 +231,8 @@ public class Gui extends Application {
           // Skapa en stadnod och lägg in grafmodellen
           City cityNode = new City(placeName, x, y);
           graph.add(cityNode);
-        } 
-      // } else {
+        }
+        // } else {
         // event.consume();
       }
 
@@ -258,7 +258,8 @@ public class Gui extends Application {
       // Potentiell hjälpmetod i ListGraph för att hämta en nod, om VPL tillåter det
       Set<City> cities = graph.getNodes();
       for (City city : cities) {
-        if (city.getCityName().equals(cityName) && city.getX() == clickedCircle.getCenterX() && city.getY() == clickedCircle.getCenterY()) {
+        if (city.getCityName().equals(cityName) && city.getX() == clickedCircle.getCenterX()
+            && city.getY() == clickedCircle.getCenterY()) {
           clickedCity = city;
           break;
         }
@@ -268,7 +269,8 @@ public class Gui extends Application {
       if (clickedCity == null) {
         throw new NullPointerException("City-node expected, null found!");
       }
-      // potentiell hjälpklass: markCityIfPossible(City city) alternativt mark(City city)/unmark(City city)
+      // potentiell hjälpklass: markCityIfPossible(City city) alternativt mark(City
+      // city)/unmark(City city)
 
       if (markedCity1 == null && markedCity2 == null) { // inget markerat sen tidigare, markera klickad stad
         markedCity1 = clickedCity;
@@ -321,11 +323,114 @@ public class Gui extends Application {
     markedCircle2.setFill(Color.PINK);
   }
 
-  // TODO: Försök använda en färdig fönstertyp med rätt symbol istället och skapa
-  // en subklass av den
-  // Alert newConnectionForm = new Alert(AlertType.CONFIRMATION, contentText,
-  // ButtonType.OK, ButtonType.CANCEL);
-  // newConnectionForm.showAndWait();
+  // TODO: Försök använda en färdig fönstertyp med rätt symbol istället
+  private Edge<City> showConnectionForm(String connectionName, int time, boolean nameEditable, boolean timeEditable) {
+    Alert alert = new Alert(AlertType.CONFIRMATION);
+    alert.setTitle("Connection");
+    alert.setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
+
+    Label nameLabel = new Label("Name of connection:");
+    TextField nameField;
+    if (connectionName != null && !connectionName.isBlank())
+      nameField = new TextField(connectionName);
+    else
+      nameField = new TextField("");
+    nameField.setEditable(nameEditable);
+
+    Label timeLabel = new Label("Travel time:");
+    TextField timeField;
+    if (time >= 0)
+      timeField = new TextField(String.valueOf(time));
+    else
+      timeField = new TextField("");
+    timeField.setEditable(timeEditable);
+    // timeField.textProperty().addListener((observable, oldValue, newValue) -> {
+    //   if (!newValue.matches("\\d*")) {
+    //     timeField.setText(newValue.replaceAll("[^\\d]", ""));
+    //   }
+    // });
+
+    final int SPACING_VALUE = 12;
+    GridPane grid = new GridPane();
+    grid.setHgap(SPACING_VALUE);
+    grid.setVgap(SPACING_VALUE);
+    // grid.setPadding(new Insets(SPACING_VALUE));
+    grid.add(nameLabel, 0, 0);
+    grid.add(nameField, 1, 0);
+    grid.add(timeLabel, 0, 1);
+    grid.add(timeField, 1, 1);
+
+    alert.getDialogPane().setContent(grid);
+    alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+    
+  // här börjar visning och svarshantering
+    Optional<ButtonType> result = alert.showAndWait();
+
+    if(result.isPresent() && result.get().equals(ButtonType.OK)){
+      String nameText = nameField.getText();
+      if(nameEditable){
+        if(nameText.isBlank()){
+          writeErrorAlert("Incorrect input:\nEnter a name!");
+          return null;
+        } else {
+          connectionName = nameText;
+        }
+      }
+
+      if(timeEditable){
+        String timeText = timeField.getText();
+        if(timeText.isBlank()){
+          writeErrorAlert("Incorrect input:\nEnter a time!");
+          return null;
+        } else if (!timeText.matches("\\d+")) {
+          writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
+          return null;
+        } else{
+          time = Integer.parseInt(timeText);
+        }
+      }
+      
+      return new ListEdge<>(markedCity2, connectionName, time);
+    }
+    // Hantera det som skrivits in och skicka tillbaka ett resultat från
+    // dialogfönstret
+    // alert.setResultConverter(
+    //     new Callback<ButtonType, ButtonType>() {
+    //       @Override
+    //       public ButtonType call(ButtonType dialogButton) {
+    //         if (dialogButton == ButtonType.OK) {
+    //           try {
+    //             String name = nameField.getText();
+    //             String timeText = timeField.getText();
+
+    //             if (name.isBlank()) {
+    //               writeErrorAlert("Incorrect input:\nEnter a name!");
+    //               return null;
+    //             } else if (timeText.isBlank()) {
+    //               writeErrorAlert("Incorrect input:\nEnter a time!");
+    //               return null;
+    //             } else if (!timeText.matches("\\d+")) {
+    //               writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
+    //               return null;
+    //             } else {
+    //               int time = Integer.parseInt(timeText);
+    //               return ButtonType.OK;
+    //             }
+    //           } catch (NumberFormatException e) {
+    //             System.err.println("Something went wrong when reading time from NewConnectionForm!");
+    //             return null;
+    //           }
+    //         } else {
+    //           // om denna metod returnerar null innebär det att showAndWait() returnerar en
+    //           // tom Optional<Edge<City>
+    //           return null;
+    //         }
+    //       }
+    //     });
+
+      return null;
+  }
+
   private class NewConnectionForm extends Dialog<Edge<City>> {
     private TextField nameField = new TextField();
     private TextField timeField = new TextField();
@@ -335,7 +440,7 @@ public class Gui extends Application {
       setTitle("Connection");
       setHeaderText("Connection from " + markedCity1.getCityName() + " to " + markedCity2.getCityName());
       nameField.setPromptText("Name");
-      timeField.setPromptText("Travel time:");
+      timeField.setPromptText("Time");
 
       GridPane grid = new GridPane();
       grid.setHgap(12);
@@ -389,20 +494,21 @@ public class Gui extends Application {
           });
     }
   }
-  
-  class ChangeConnectionHandler implements EventHandler<ActionEvent>{
-    public void handle(ActionEvent event){
 
-      if(twoPlacesSelected()){
+  class ChangeConnectionHandler implements EventHandler<ActionEvent> {
+    @Override
+    public void handle(ActionEvent event) {
+
+      if (twoPlacesSelected()) {
         String cityName1 = markedCity1.getCityName();
         String cityName2 = markedCity2.getCityName();
-        int time = 0;
 
-        if((graph.getEdgeBetween(markedCity1, markedCity2)) != null){
-          Edge<City> connection = graph.getEdgeBetween(markedCity1, markedCity2);
+        Edge<City> connection = graph.getEdgeBetween(markedCity1, markedCity2);
+        if (connection != null) {
           String connectionName = connection.getName();
 
-          Alert alert = new Alert(AlertType.INFORMATION);
+          Alert alert = new Alert(AlertType.CONFIRMATION);
+
           alert.setTitle("Connection");
           alert.setHeaderText("Connection from " + cityName1 + " to " + cityName2);
 
@@ -416,30 +522,31 @@ public class Gui extends Application {
           nameField.setEditable(false);
 
           Label timeLabel = new Label("Time:");
-          TextField timeField = new TextField(" "); 
+          TextField timeField = new TextField(" ");
           timeField.setEditable(true);
-          timeField.textProperty().addListener((observable, oldValue, newValue) ->{
-            if(!newValue.matches("\\d*")){
-              timeField.setText(newValue.replaceAll("[^\\d]" , ""));
+          timeField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+              writeErrorAlert("Invalid input!!!");
+              timeField.setText(newValue.replaceAll("[^\\d]", ""));
             }
           });
 
-          grid.add(nameLabel,0,0);
-          grid.add(nameField,1,0);
-          grid.add(timeLabel,0,1);
-          grid.add(timeField,1,1);
+          grid.add(nameLabel, 0, 0);
+          grid.add(nameField, 1, 0);
+          grid.add(timeLabel, 0, 1);
+          grid.add(timeField, 1, 1);
 
           alert.getDialogPane().setContent(grid);
 
           alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
 
           Optional<ButtonType> result = alert.showAndWait();
-          if(result.isPresent() && result.get() == ButtonType.OK){
+          if (result.isPresent() && result.get() == ButtonType.OK) {
             String timeText = timeField.getText();
-            try{ 
-              time = Integer.parseInt(timeText);
+            try {
+              int time = Integer.parseInt(timeText);
               graph.setConnectionWeight(markedCity1, markedCity2, time);
-            }catch (NumberFormatException e){
+            } catch (NumberFormatException e) {
               System.out.println("Invalid number input.");
             }
 
@@ -447,35 +554,34 @@ public class Gui extends Application {
 
           clearSelectedPlaces();
 
-        }else{
+        } else {
           writeErrorAlert("There is no connection to change between these cities.");
           clearSelectedPlaces();
         }
 
-      }else{
-        //Felmeddelande för att två platser måste markeras.
-        //Finns redan i twoPlacesSelected()
+      } else {
+        // Felmeddelande för att två platser måste markeras.
+        // Finns redan i twoPlacesSelected()
       }
 
     }
   }
-  
-  class ShowConnectionHandler implements EventHandler<ActionEvent>{
-    public void handle(ActionEvent event){
-      
-      if(twoPlacesSelected()){
+
+  class ShowConnectionHandler implements EventHandler<ActionEvent> {
+    public void handle(ActionEvent event) {
+
+      if (twoPlacesSelected()) {
         String cityName1 = markedCity1.getCityName();
         String cityName2 = markedCity2.getCityName();
-        
-        if((graph.getEdgeBetween(markedCity1, markedCity2)) != null){
-          Edge<City> connection = graph.getEdgeBetween(markedCity1, markedCity2);
+        Edge<City> connection = graph.getEdgeBetween(markedCity1, markedCity2);
+        if (connection != null) {
           String connectionName = connection.getName();
           int connectionTime = connection.getWeight();
 
-          Alert alert = new Alert(AlertType.INFORMATION);
+          Alert alert = new Alert(AlertType.CONFIRMATION);
           alert.setTitle("Connection");
           alert.setHeaderText("Connection from " + cityName1 + " to " + cityName2);
-        
+
           GridPane grid = new GridPane();
           grid.setHgap(12);
           grid.setVgap(12);
@@ -486,26 +592,26 @@ public class Gui extends Application {
           nameField.setEditable(false);
 
           Label timeLabel = new Label("Time:");
-          TextField timeField = new TextField(String.valueOf(connectionTime)); 
+          TextField timeField = new TextField(String.valueOf(connectionTime));
           timeField.setEditable(false);
 
-          grid.add(nameLabel,0,0);
-          grid.add(nameField,1,0);
-          grid.add(timeLabel,0,1);
-          grid.add(timeField,1,1);
+          grid.add(nameLabel, 0, 0);
+          grid.add(nameField, 1, 0);
+          grid.add(timeLabel, 0, 1);
+          grid.add(timeField, 1, 1);
 
           alert.getDialogPane().setContent(grid);
           alert.showAndWait();
           clearSelectedPlaces();
 
-        }else{
+        } else {
           writeErrorAlert("There exists no connection between " + cityName1 + " and " + cityName2 + "!");
           clearSelectedPlaces();
         }
 
-      }else{
-        //Felmeddelande för att två platser inte har valts behövs inte?
-        //eftersom det finns i twoPlacesSelected() ??
+      } else {
+        // Felmeddelande för att två platser inte har valts behövs inte?
+        // eftersom det finns i twoPlacesSelected() ??
       }
     }
   }
@@ -609,8 +715,8 @@ public class Gui extends Application {
         alert.setContentText("Unsaved changes, continue anyway?");
         alert.setHeaderText(null);
 
-        Optional<ButtonType> ans = alert.showAndWait();
-        if (ans.isPresent() && ans.get().equals(ButtonType.CANCEL)) {
+        Optional<ButtonType> answer = alert.showAndWait();
+        if (answer.isPresent() && answer.get().equals(ButtonType.CANCEL)) {
           event.consume(); // stoppa nedstängningshändelse
         }
       }
