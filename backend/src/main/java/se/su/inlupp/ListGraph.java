@@ -97,7 +97,7 @@ public class ListGraph<T> implements Graph<T> {
 
   @Override
   public String toString() {
-    StringBuilder stringBuilder = new StringBuilder("Graf");
+    StringBuilder stringBuilder = new StringBuilder("Graph");
     stringBuilder.append("\n");
     for (Map.Entry<T, Set<Edge<T>>> mapEntry : nodes.entrySet()) {
       stringBuilder.append(mapEntry.getKey()).append(": ").append(mapEntry.getValue()).append("\n");

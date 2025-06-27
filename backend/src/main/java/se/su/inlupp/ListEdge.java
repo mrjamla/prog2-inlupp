@@ -44,7 +44,8 @@ public class ListEdge<T> implements Edge<T>{
 
     @Override
     public String toString(){
-        return "till " + destination + " med " + name + " tar " + weight;
+        return String.format("to %s by %s takes %d", destination, name, weight);
+        // return "till " + destination + " med " + name + " tar " + weight;
     }
 
     // @Override

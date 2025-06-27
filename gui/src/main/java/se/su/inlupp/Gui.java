@@ -72,10 +72,6 @@ public class Gui extends Application {
     // kartan
     graph = new ListGraph<>();
 
-    // ta bort när funktioner som utför ändringar på kartan fungerar
-    // (instansvariabeln sätts till false utan explicit tilldelning)
-    edited = true;
-
     // Fixar så dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
     if (projectRoot.exists()) {
@@ -173,17 +169,28 @@ public class Gui extends Application {
   class NewMapItemHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
-      // TODO: kontroll för att se om ändringar finns
+      if (edited) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Warning!");
+        alert.setContentText("Unsaved changes, continue anyway?");
+        alert.setHeaderText(null);
 
-      File file = fileChooser.showOpenDialog(stage);
-
-      if (file != null) {
-        changeMap(file.toURI().toString());
-        // changed = false;
+        Optional<ButtonType> answer = alert.showAndWait();
+        if (answer.isPresent() && answer.get().equals(ButtonType.CANCEL)) {
+          event.consume(); // markera att händelse avbryts
+        }
       }
 
+      if(!event.isConsumed()){ // om händelse fortfarande pågår
+        File file = fileChooser.showOpenDialog(stage);
+        
+        if (file != null) {
+          changeMap(file.toURI().toString());
+          
+          edited = false;
+        }
+      }
     }
-
   }
 
   class MapClickHandler implements EventHandler<MouseEvent> {
@@ -213,7 +220,7 @@ public class Gui extends Application {
           Circle circle = new Circle(x, y, 12);
           circle.setFill(Color.PINK);
 
-          // Skapa ettiket
+          // Skapa etikett
           Label city = new Label(placeName);
           city.setLayoutX(x + 6);
           city.setLayoutY(y + 6);
@@ -231,6 +238,8 @@ public class Gui extends Application {
           // Skapa en stadnod och lägg in grafmodellen
           City cityNode = new City(placeName, x, y);
           graph.add(cityNode);
+
+          edited = true;
         }
         // } else {
         // event.consume();
@@ -546,6 +555,8 @@ public class Gui extends Application {
             try {
               int time = Integer.parseInt(timeText);
               graph.setConnectionWeight(markedCity1, markedCity2, time);
+              
+              edited = true;
             } catch (NumberFormatException e) {
               System.out.println("Invalid number input.");
             }
@@ -629,11 +640,10 @@ public class Gui extends Application {
           TextArea textArea = new TextArea("");
           borderPane.setCenter(textArea);
 
-          for(Edge<City> e : path){
-            int edgeWeight = e.getWeight();
-            String textLine = "to " + e.getDestination().getCityName() + " by " + e.getName() + " takes " + String.valueOf(edgeWeight) + "\n";
-            edgeWeightTotal += edgeWeight;
-            textArea.appendText(textLine);
+          for(Edge<City> edge : path){
+            // String textLine = "to " + edge.getDestination().getCityName() + " by " + edge.getName() + " takes " + String.valueOf(edgeWeight) + "\n";
+            edgeWeightTotal += edge.getWeight();
+            textArea.appendText(edge.toString()+"\n");
           }
 
           textArea.appendText("Total time: " + String.valueOf(edgeWeightTotal));
@@ -665,7 +675,7 @@ public class Gui extends Application {
       if (twoPlacesSelected()) {
         try {
           // TODO: en hjälpmetod i ListGraph (om den tillåts av VPL) som returnerar
-          // boolean
+          // boolean eller hjälpklass placesConnected() här
           Edge<City> existingEdge = graph.getEdgeBetween(markedCity2, markedCity1);
 
           if (existingEdge == null) {
@@ -682,6 +692,8 @@ public class Gui extends Application {
               // markedCityCircle2X, markedCityCircle2Y);
               Line line = new Line(markedCity1.getX(), markedCity1.getY(), markedCity2.getX(), markedCity2.getY());
               mapPane.getChildren().add(1, line); // ritar linje först och under andra noder på positionen
+
+              edited = true;
             }
             // hjälpmetod för nollställning av markeringar
             clearSelectedPlaces();
