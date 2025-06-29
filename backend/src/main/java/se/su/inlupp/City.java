@@ -32,7 +32,7 @@ public class City{
         return cityName.hashCode();
     }
 
-    public String getCityName(){
+    public String getName(){
         return cityName;
     }
 
@@ -46,6 +46,6 @@ public class City{
     
     @Override
     public String toString(){
-        return "%s (x:%f, y:%f)".formatted(cityName, x, y);
+        return "%s (%f, %f)".formatted(cityName, x, y);
     }
 }
