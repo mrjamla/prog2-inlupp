@@ -23,8 +23,8 @@ public class City{
         if(!(obj instanceof City)){
             return false;
         }
-        // två städer är lika om de delar namn och koordinater
-        return this.cityName.equals(other.cityName) && this.x == other.x && this.y == other.y;
+        // två städer är lika om de delar namn (case-insensitive)
+        return this.cityName.toLowerCase().equals(other.cityName.toLowerCase()); //&& this.x == other.x && this.y == other.y;
     }
 
     @Override
