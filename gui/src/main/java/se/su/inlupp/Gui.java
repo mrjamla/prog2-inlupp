@@ -1,11 +1,14 @@
 package se.su.inlupp;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URI;
+
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -89,6 +92,7 @@ public class Gui extends Application {
     MenuItem newMap = new MenuItem("New map");
     newMap.setOnAction(new NewMapItemHandler());
     MenuItem open = new MenuItem("Open");
+    open.setOnAction(new OpenMapItemHandler());
     MenuItem save = new MenuItem("Save");
     save.setOnAction(new SaveMapItemHandler());
     MenuItem saveImage = new MenuItem("Save Image");
@@ -147,11 +151,10 @@ public class Gui extends Application {
     launch(args);
   }
 
-  
   private boolean checkIfNull(String string) {
     return string == null || string.isBlank();
   }
-  
+
   private void showErrorAlert(String prompt) {
     Alert alert = new Alert(AlertType.ERROR);
     alert.setTitle("Error!");
@@ -159,10 +162,66 @@ public class Gui extends Application {
     alert.setContentText(prompt);
     alert.showAndWait();
   }
-  
-  private void changeMap(String filePath) {
-  // steg 1: hämtar bild på karta och ritar ut i kartvy
-  Image image = new Image(filePath);
+
+  private void drawPlaceOnMap(String name, double x, double y) {
+    // Skapa cirkel
+    Circle circle = new Circle(x, y, 12);
+    circle.setFill(Color.PINK);
+
+    // Skapa etikett
+    Label cityLabel = new Label(name);
+    cityLabel.setLayoutX(x + 6);
+    cityLabel.setLayoutY(y + 6);
+    cityLabel.setStyle("fx-font-family: 'Calibri'; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: black;");
+    cityLabel.setLabelFor(circle);
+
+    // Skapa behållare för stadens etikett och cirkel
+    Group cityCircle = new Group();
+    cityCircle.getChildren().addAll(circle, cityLabel);
+    cityCircle.setOnMouseClicked(new CityCircleClickHandler());
+
+    // Lägg in plats i kartan
+    mapPane.getChildren().add(cityCircle);
+  }
+
+  private void drawConnectionOnMap(City place1, City place2, String name, int time) {
+    // TODO: Kolla upp varför circle.getCenterX/Y() inte ger rätt koordinater
+    // Line line = new Line(markedCityCircle1X, markedCityCircle1Y,
+    // markedCityCircle2X, markedCityCircle2Y);
+
+    // Skapa en linje mellan de två platsernas koordinater
+    Line line = new Line(place1.getX(), place1.getY(), place2.getX(), place2.getY());
+
+    // Rita linjen först och under andra noder på positionen
+    mapPane.getChildren().add(1, line); 
+  }
+
+  /**
+   * Återställer grafen i både modellen (graph) och vyn (mapPane).
+   */
+  private void resetMapGraph() {
+    // Rensa eventuella markeringar
+    clearSelectedPlaces();
+    // Rensa karta på platser och anslutningar
+    Iterator<Node> childNodes = mapPane.getChildren().iterator();
+    while (childNodes.hasNext()) {
+      Node node = childNodes.next();
+      if (node instanceof Group || node instanceof Line) {
+        // Ta bort den sist hämtade barnnoden till kartrutan ur rutans barnsamling
+        childNodes.remove();
+      }
+    }
+    // Rensa graf på noder och kanter
+    graph = new ListGraph<>();
+  }
+
+  /**
+   * Ändrar bakgrundsbilden på vilken kartgrafen ritas ut.
+   * @param filePath
+   */
+  private void changeMapImage(String filePath) {
+    // steg 1: hämtar bild på karta och ritar ut i kartvy
+    Image image = new Image(filePath);
     imageView.setImage(image);
     // steg 2: anpassar rot och fönster efter (önskad) bildbredd
     root.setPrefWidth(image.getWidth());
@@ -187,11 +246,12 @@ public class Gui extends Application {
         }
       }
 
-      if(!event.isConsumed()){ // om händelse fortfarande pågår
+      if (!event.isConsumed()) { // om händelse fortfarande pågår
         File file = fileChooser.showOpenDialog(stage);
-        
+
         if (file != null) {
-          changeMap(file.toURI().toString());
+          resetMapGraph();
+          changeMapImage(file.toURI().toString());
 
           edited = false;
         }
@@ -199,30 +259,168 @@ public class Gui extends Application {
     }
   }
 
-  private void saveMap(String filePath){
+  private void openMap(String filePath) {
     System.out.println(filePath);
 
-    try(FileWriter fileWriter = new FileWriter(filePath); PrintWriter writer = new PrintWriter(fileWriter)){
+    try (FileReader fileReader = new FileReader(filePath); BufferedReader reader = new BufferedReader(fileReader)) {
+      // TODO: Byt ut till genomgång av fil med Iterator<String> lineItertor =
+      // reader.lines().iterator();
+
+      resetMapGraph();
+      // Byt kartbild i fönstret
+      String mapPath = reader.readLine();
+      changeMapImage(mapPath);
+
+      // Hämta och sätt in alla platser i grafen
+      String cityRow = reader.readLine();
+      String[] cityRecords = cityRow.split(";");
+      int nameIndex = 0;
+      int xIndex = 1;
+      int yIndex = 2;
+
+      while (nameIndex < cityRecords.length) {
+        try {
+          City city = new City(cityRecords[nameIndex], Double.parseDouble(cityRecords[xIndex]),
+              Double.parseDouble(cityRecords[yIndex]));
+          graph.add(city);
+          drawPlaceOnMap(city.getName(), city.getX(), city.getY());
+
+        } catch (NumberFormatException nfe) {
+          System.err.println("Expected a double, but got something else: " + nfe.getMessage());
+        }
+
+        nameIndex += 3;
+        xIndex = nameIndex + 1;
+        yIndex = nameIndex + 2;
+      }
+
+      // Hämta och sätt in alla anslutningar mellan platser i grafen
+      String connectionRow = reader.readLine();
+      String[] connectionData;
+      Set<City> cities = graph.getNodes();
+      Optional<City> from = Optional.empty();
+      Optional<City> to = Optional.empty();
+      String readCityName;
+      String connectionName;
+      int weight;
+      // Pga ordningen som anslutningarna sparas i filen med Save-funktionen,
+      // och att connect-metoden skapar dubbelriktade anslutningar,
+      // så kan man hålla reda på vilka städer som har varit startpunkter i tidigare
+      // anslutningar
+      // för att ignorera deras spegelvända anslutningar där samma städer är
+      // destinationer när
+      // de läses av från filen. Metoden kommer ju lägga till båda när ena fallet
+      // läses av från filen.
+      Set<String> visitedAsOrigin = new HashSet<>();
+
+      while (connectionRow != null) {
+        connectionData = connectionRow.split(";");
+
+        // TODO: ta bort möjlighet att lägga till städer med samma namn i grafen,
+        // istället
+        // ska ett felmeddelande visas vid försök att lägga till dubbletter.
+
+        // hitta platsen som hör till inläst startpunktsnamn
+        readCityName = connectionData[0];
+        for (City city : cities) {
+          if (city.getName().equals(readCityName)) {
+            from = Optional.of(city);
+            break;
+          }
+        }
+
+        // Hitta platsen som hör till inläst destinationsnamn
+        readCityName = connectionData[1];
+        // Kontrollera så destinationen inte redan dykt upp som en startpunkt tidigare
+        if (!visitedAsOrigin.contains(readCityName)) {
+          for (City city : cities) {
+            if (city.getName().equals(readCityName)) {
+              to = Optional.of(city);
+              break;
+            }
+          }
+
+          if (from.isPresent() && to.isPresent()) {
+            connectionName = connectionData[2];
+            try {
+              weight = Integer.parseInt(connectionData[3]);
+              graph.connect(from.get(), to.get(), connectionName, weight);
+              drawConnectionOnMap(from.get(), to.get(), connectionName, weight);
+              // Lägg till att startpunkten har besökts
+              visitedAsOrigin.add(from.get().getName());
+            } catch (NumberFormatException nfe) {
+              System.err.println("Expected an integer, but got something else: " + nfe.getMessage());
+            }
+
+          }
+
+        }
+        // Läs in nästa rad, om den finns, med anslutningsdata
+        connectionRow = reader.readLine();
+      }
+
+    } catch (FileNotFoundException ex) {
+      System.err.println("Can't open file, because %s".formatted(ex.getMessage()));
+    } catch (IOException ex) {
+      System.err.println("IO error %s".formatted(ex.getMessage()));
+    }
+  }
+
+  // TODO: extrahera ut delad funktionalitet ur OpenMapItemHandler och
+  // NewMapItemHandler och ha i en metod
+  class OpenMapItemHandler implements EventHandler<ActionEvent> {
+
+    @Override
+    public void handle(ActionEvent event) {
+
+      if (edited) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Warning!");
+        alert.setContentText("Unsaved changes, continue anyway?");
+        alert.setHeaderText(null);
+
+        Optional<ButtonType> answer = alert.showAndWait();
+        if (answer.isPresent() && answer.get().equals(ButtonType.CANCEL)) {
+          event.consume(); // markera att händelse avbryts
+        }
+      }
+
+      if (!event.isConsumed()) { // om händelse fortfarande pågår
+        File graphFile = fileChooser.showOpenDialog(stage);
+
+        if (graphFile != null) {
+          openMap(graphFile.getAbsolutePath());
+
+          edited = false;
+        }
+      }
+    }
+  }
+
+  private void saveMap(String filePath) {
+
+    try (FileWriter fileWriter = new FileWriter(filePath); PrintWriter writer = new PrintWriter(fileWriter)) {
       // Spara kartbildens URL i filen
       String imagePath = imageView.getImage().getUrl();
       writer.println(imagePath);
-      // Spara grafens platser i filen 
+      // Spara grafens platser i filen
       Set<City> cities = graph.getNodes();
       for (City city : cities) {
-        // Uppgifter sparas på en rad semikolonseparerade 
-          writer.print(String.format("%s;%s;%s;", city.getName(), city.getX(), city.getY()));
+        // Uppgifter sparas på en rad semikolonseparerade
+        writer.print(String.format("%s;%s;%s;", city.getName(), city.getX(), city.getY()));
       }
       writer.println();
       // Spara grafens anslutningar i filen
-      for(City city : cities){
-          for (Edge<City> connection : graph.getEdgesFrom(city)) {
-              // Uppgifter sparas rad för rad semikolonseparerade
-              writer.println(String.format("%s;%s;%s;%s;", city.getName(), connection.getDestination().getName(), connection.getName(), connection.getWeight()));
-          }
+      for (City city : cities) {
+        for (Edge<City> connection : graph.getEdgesFrom(city)) {
+          // Uppgifter sparas rad för rad semikolonseparerade
+          writer.println(String.format("%s;%s;%s;%s;", city.getName(), connection.getDestination().getName(),
+              connection.getName(), connection.getWeight()));
+        }
       }
 
-    } catch (FileNotFoundException ex){
-      System.err.println("Can't open file!");
+    } catch (FileNotFoundException ex) {
+      System.err.println("Can't open file, because %s".formatted(ex.getMessage()));
     } catch (IOException ex) {
       System.err.println("IO error %s".formatted(ex.getMessage()));
     }
@@ -233,14 +431,14 @@ public class Gui extends Application {
     @Override
     public void handle(ActionEvent event) {
       File saveFile = fileChooser.showSaveDialog(stage);
-        
-        if (saveFile != null) {
-          saveMap(saveFile.getAbsolutePath());
 
-          edited = false;
-        }
+      if (saveFile != null) {
+        saveMap(saveFile.getAbsolutePath());
+
+        edited = false;
+      }
     }
-    
+
   }
 
   class MapClickHandler implements EventHandler<MouseEvent> {
@@ -265,25 +463,8 @@ public class Gui extends Application {
           // Hämta koordinater på muspekaren vid klick
           double x = event.getX();
           double y = event.getY();
-
-          // Skapa cirkel
-          Circle circle = new Circle(x, y, 12);
-          circle.setFill(Color.PINK);
-
-          // Skapa etikett
-          Label city = new Label(placeName);
-          city.setLayoutX(x + 6);
-          city.setLayoutY(y + 6);
-          city.setStyle("fx-font-family: 'Calibri'; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: black;");
-          city.setLabelFor(circle);
-
-          // Skapa behållare för stadens etikett och cirkel
-          Group cityCircle = new Group();
-          cityCircle.getChildren().addAll(circle, city);
-          cityCircle.setOnMouseClicked(new CityCircleClickHandler());
-
-          // Lägg in platsbehållare i kartans behållare
-          mapPane.getChildren().add(cityCircle);
+          // Rita ut platsen på kartan
+          drawPlaceOnMap(placeName, x, y);
 
           // Skapa en stadnod och lägg in grafmodellen
           City cityNode = new City(placeName, x, y);
@@ -291,8 +472,6 @@ public class Gui extends Application {
 
           edited = true;
         }
-        // } else {
-        // event.consume();
       }
 
       scene.setCursor(Cursor.DEFAULT);
@@ -307,8 +486,8 @@ public class Gui extends Application {
     @Override
     public void handle(MouseEvent event) {
       // tar fram referenser till klickad cirkel och tillhörande stad (från Group)
-      Group cityCircle = (Group) event.getSource();
-      ObservableList<Node> list = cityCircle.getChildren();
+      Group cityGroup = (Group) event.getSource();
+      ObservableList<Node> list = cityGroup.getChildren();
       Circle clickedCircle = (Circle) list.get(0);
       Label clickedLabel = (Label) list.get(1);
       String cityName = clickedLabel.getText();
@@ -375,23 +554,40 @@ public class Gui extends Application {
     return bothSelected;
   }
 
+  /**
+   * Återställer markeringar på kartan.
+   */
   private void clearSelectedPlaces() {
     markedCity1 = null;
     markedCity2 = null;
-    markedCircle1.setFill(Color.PINK);
-    markedCircle2.setFill(Color.PINK);
+    if (markedCircle1 != null) {
+      markedCircle1.setFill(Color.PINK);
+    }
+    if (markedCircle2 != null) {
+      markedCircle2.setFill(Color.PINK);
+    }
   }
 
-  private void disableButtons(boolean choice){
+  private void disableButtons(boolean choice) {
     // findPath.setDisable(choice);
-    // showConn.setDisable(choice); 
-    // newPlace.setDisable(choice); 
-    // newConn.setDisable(choice); 
+    // showConn.setDisable(choice);
+    // newPlace.setDisable(choice);
+    // newConn.setDisable(choice);
     // changeConn.setDisable(choice);
   }
 
-  // TODO: Försök använda en färdig fönstertyp med rätt symbol istället
-  private Optional<Edge<City>> showConnectionForm(String connectionName, int time, boolean nameEditable, boolean timeEditable) {
+  /**
+   * När en dialogrutan behövs för att hantera en anslutning på något sätt,
+   * så visas den via denna metod.
+   * 
+   * @param connectionName
+   * @param time
+   * @param nameEditable
+   * @param timeEditable
+   * @return
+   */
+  private Optional<Edge<City>> showConnectionForm(String connectionName, int time, boolean nameEditable,
+      boolean timeEditable) {
     Alert alert = new Alert(AlertType.CONFIRMATION);
     alert.setTitle("Connection");
     alert.setHeaderText("Connection from " + markedCity1.getName() + " to " + markedCity2.getName());
@@ -412,9 +608,9 @@ public class Gui extends Application {
       timeField = new TextField("");
     timeField.setEditable(timeEditable);
     // timeField.textProperty().addListener((observable, oldValue, newValue) -> {
-    //   if (!newValue.matches("\\d*")) {
-    //     timeField.setText(newValue.replaceAll("[^\\d]", ""));
-    //   }
+    // if (!newValue.matches("\\d*")) {
+    // timeField.setText(newValue.replaceAll("[^\\d]", ""));
+    // }
     // });
 
     final int SPACING_VALUE = 12;
@@ -429,15 +625,15 @@ public class Gui extends Application {
 
     alert.getDialogPane().setContent(grid);
     alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-    
-  // här börjar visning och svarshantering
+
+    // här börjar visning och svarshantering
     Optional<ButtonType> result = alert.showAndWait();
 
-    if(result.isPresent() && result.get().equals(ButtonType.OK)){
-      if(nameEditable){
+    if (result.isPresent() && result.get().equals(ButtonType.OK)) {
+      if (nameEditable) {
         String nameText = nameField.getText();
-        // TODO: sätt in en regex kontroll mot //w+ (ord som bara innehållet bokstäver, siffror eller bindestreck)
-        if(nameText.isBlank()){
+        // TODO: sätt in en regex kontroll så att rimliga ord kan väljas 
+        if (nameText.isBlank()) {
           showErrorAlert("Incorrect input:\nEnter a name!");
           return Optional.empty();
         } else {
@@ -445,60 +641,62 @@ public class Gui extends Application {
         }
       }
 
-      if(timeEditable){
+      if (timeEditable) {
         String timeText = timeField.getText();
-        if(timeText.isBlank()){
+        if (timeText.isBlank()) {
           showErrorAlert("Incorrect input:\nEnter a time!");
           return Optional.empty();
         } else if (!timeText.matches("\\d+")) {
           showErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
           return Optional.empty();
-        } else{
+        } else {
           time = Integer.parseInt(timeText);
         }
       }
-      
+
       return Optional.of(new ListEdge<>(markedCity2, connectionName, time));
     }
     // Hantera det som skrivits in och skicka tillbaka ett resultat från
     // dialogfönstret
     // alert.setResultConverter(
-    //     new Callback<ButtonType, ButtonType>() {
-    //       @Override
-    //       public ButtonType call(ButtonType dialogButton) {
-    //         if (dialogButton == ButtonType.OK) {
-    //           try {
-    //             String name = nameField.getText();
-    //             String timeText = timeField.getText();
+    // new Callback<ButtonType, ButtonType>() {
+    // @Override
+    // public ButtonType call(ButtonType dialogButton) {
+    // if (dialogButton == ButtonType.OK) {
+    // try {
+    // String name = nameField.getText();
+    // String timeText = timeField.getText();
 
-    //             if (name.isBlank()) {
-    //               writeErrorAlert("Incorrect input:\nEnter a name!");
-    //               return null;
-    //             } else if (timeText.isBlank()) {
-    //               writeErrorAlert("Incorrect input:\nEnter a time!");
-    //               return null;
-    //             } else if (!timeText.matches("\\d+")) {
-    //               writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
-    //               return null;
-    //             } else {
-    //               int time = Integer.parseInt(timeText);
-    //               return ButtonType.OK;
-    //             }
-    //           } catch (NumberFormatException e) {
-    //             System.err.println("Something went wrong when reading time from NewConnectionForm!");
-    //             return null;
-    //           }
-    //         } else {
-    //           // om denna metod returnerar null innebär det att showAndWait() returnerar en
-    //           // tom Optional<Edge<City>
-    //           return null;
-    //         }
-    //       }
-    //     });
+    // if (name.isBlank()) {
+    // writeErrorAlert("Incorrect input:\nEnter a name!");
+    // return null;
+    // } else if (timeText.isBlank()) {
+    // writeErrorAlert("Incorrect input:\nEnter a time!");
+    // return null;
+    // } else if (!timeText.matches("\\d+")) {
+    // writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
+    // return null;
+    // } else {
+    // int time = Integer.parseInt(timeText);
+    // return ButtonType.OK;
+    // }
+    // } catch (NumberFormatException e) {
+    // System.err.println("Something went wrong when reading time from
+    // NewConnectionForm!");
+    // return null;
+    // }
+    // } else {
+    // // om denna metod returnerar null innebär det att showAndWait() returnerar en
+    // // tom Optional<Edge<City>
+    // return null;
+    // }
+    // }
+    // });
 
-      return Optional.empty();
+    return Optional.empty();
   }
 
+  // TODO: ta bort när showConnectionForm är helt färdig
   private class NewConnectionForm extends Dialog<Edge<City>> {
     private TextField nameField = new TextField();
     private TextField timeField = new TextField();
@@ -568,62 +766,24 @@ public class Gui extends Application {
     public void handle(ActionEvent event) {
 
       if (twoPlacesSelected()) {
-        String cityName1 = markedCity1.getName();
-        String cityName2 = markedCity2.getName();
-
         Edge<City> connection = graph.getEdgeBetween(markedCity1, markedCity2);
         if (connection != null) {
-          // String connectionName = connection.getName();
           Optional<Edge<City>> result = showConnectionForm(connection.getName(), 0, false, true);
-          // Alert alert = new Alert(AlertType.CONFIRMATION);
 
-          // alert.setTitle("Connection");
-          // alert.setHeaderText("Connection from " + cityName1 + " to " + cityName2);
+          try {
+            int time = result.get().getWeight();
+            graph.setConnectionWeight(markedCity1, markedCity2, time);
 
-          // GridPane grid = new GridPane();
-          // grid.setHgap(12);
-          // grid.setVgap(12);
-          // grid.setPadding(new Insets(12));
+            edited = true;
+          } catch (NumberFormatException e) {
+            System.out.println("Invalid number input.");
+          }
 
-          // Label nameLabel = new Label("Name of connection:");
-          // TextField nameField = new TextField(connectionName);
-          // nameField.setEditable(false);
-
-          // Label timeLabel = new Label("Time:");
-          // TextField timeField = new TextField(" ");
-          // timeField.setEditable(true);
-          // timeField.textProperty().addListener((observable, oldValue, newValue) -> {
-            // if (!newValue.matches("\\d*")) {
-              // writeErrorAlert("Invalid input!!!");
-              // timeField.setText(newValue.replaceAll("[^\\d]", ""));
-            // }
-          // });
-
-          // grid.add(nameLabel, 0, 0);
-          // grid.add(nameField, 1, 0);
-          // grid.add(timeLabel, 0, 1);
-          // grid.add(timeField, 1, 1);
-
-          // alert.getDialogPane().setContent(grid);
-
-          // alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-
-          // Optional<ButtonType> result = alert.showAndWait();
-          // if (result.isPresent() && result.get() == ButtonType.OK) {
-          // String timeText = timeField.getText();
-            try {
-              int time = result.get().getWeight(); // Integer.parseInt(timeText);
-              graph.setConnectionWeight(markedCity1, markedCity2, time);
-              
-              edited = true;
-            } catch (NumberFormatException e) {
-              System.out.println("Invalid number input.");
-            }
-          
           clearSelectedPlaces();
-          // }
+
         } else {
-          showErrorAlert("There exists no connection between " + markedCity1.getName() + " and " + markedCity2.getName() + "!");
+          showErrorAlert(
+              "There exists no connection between " + markedCity1.getName() + " and " + markedCity2.getName() + "!");
           clearSelectedPlaces();
         }
 
@@ -636,6 +796,7 @@ public class Gui extends Application {
   }
 
   class ShowConnectionHandler implements EventHandler<ActionEvent> {
+    @Override
     public void handle(ActionEvent event) {
 
       if (twoPlacesSelected()) {
@@ -644,36 +805,11 @@ public class Gui extends Application {
           String connectionName = connection.getName();
           int connectionTime = connection.getWeight();
 
-          Optional<Edge<City>> result = showConnectionForm(connectionName, connectionTime, false, false);
-
-          // Alert alert = new Alert(AlertType.CONFIRMATION);
-          // alert.setTitle("Connection");
-          // alert.setHeaderText("Connection from " + cityName1 + " to " + cityName2);
-// 
-          // GridPane grid = new GridPane();
-          // grid.setHgap(12);
-          // grid.setVgap(12);
-          // grid.setPadding(new Insets(12));
-// 
-          // Label nameLabel = new Label("Name of connection:");
-          // TextField nameField = new TextField(connectionName);
-          // nameField.setEditable(false);
-// 
-          // Label timeLabel = new Label("Time:");
-          // TextField timeField = new TextField(String.valueOf(connectionTime));
-          // timeField.setEditable(false);
-// 
-          // grid.add(nameLabel, 0, 0);
-          // grid.add(nameField, 1, 0);
-          // grid.add(timeLabel, 0, 1);
-          // grid.add(timeField, 1, 1);
-// 
-          // alert.getDialogPane().setContent(grid);
-          // alert.showAndWait();
-          clearSelectedPlaces();
+          showConnectionForm(connectionName, connectionTime, false, false);
 
         } else {
-          showErrorAlert("There exists no connection between " + markedCity1.getName() + " and " + markedCity2.getName() + "!");
+          showErrorAlert(
+              "There exists no connection between " + markedCity1.getName() + " and " + markedCity2.getName() + "!");
           clearSelectedPlaces();
         }
 
@@ -683,22 +819,21 @@ public class Gui extends Application {
       }
     }
   }
-  
-  class FindPathHandler implements EventHandler<ActionEvent>{
-    public void handle(ActionEvent event){
+
+  class FindPathHandler implements EventHandler<ActionEvent> {
+    public void handle(ActionEvent event) {
       List<Edge<City>> path = graph.getPath(markedCity1, markedCity2);
       int edgeWeightTotal = 0;
-    
-      if(twoPlacesSelected()){
-        if(path != null){
+
+      if (twoPlacesSelected()) {
+        if (path != null) {
           BorderPane borderPane = new BorderPane();
           TextArea textArea = new TextArea("");
           borderPane.setCenter(textArea);
 
-          for(Edge<City> edge : path){
-            // String textLine = "to " + edge.getDestination().getCityName() + " by " + edge.getName() + " takes " + String.valueOf(edgeWeight) + "\n";
+          for (Edge<City> edge : path) {
             edgeWeightTotal += edge.getWeight();
-            textArea.appendText(edge.toString()+"\n");
+            textArea.appendText(edge.toString() + "\n");
           }
 
           textArea.appendText("Total time: " + String.valueOf(edgeWeightTotal));
@@ -709,21 +844,21 @@ public class Gui extends Application {
           alert.setHeaderText("The Path from " + markedCity1.getName() + " to " + markedCity2.getName());
           alert.getDialogPane().setContent(borderPane);
           alert.showAndWait();
-          
+
           clearSelectedPlaces();
 
-        }else{
+        } else {
           showErrorAlert("There is no path from " + markedCity1.getName() + " to " + markedCity2.getName());
           clearSelectedPlaces();
         }
 
-      }else{
-        //Felmeddelande för att två platser inte är valda finns i twoPlacesSelected()
+      } else {
+        // Felmeddelande för att två platser inte är valda finns i twoPlacesSelected()
       }
 
     }
   }
-  
+
   class NewConnectionHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
@@ -739,14 +874,10 @@ public class Gui extends Application {
             if (result.isPresent()) {
               String connectionName = result.get().getName();
               int connectionTime = result.get().getWeight();
+              
               graph.connect(markedCity1, markedCity2, connectionName, connectionTime);
-              // Potentiell hjälpmetod drawConnection() som ritar ut en linje på kartan
-              // TODO: Kolla upp varför circle.getCenterX/Y() inte ger rätt koordinater
-              // Line line = new Line(markedCityCircle1X, markedCityCircle1Y,
-              // markedCityCircle2X, markedCityCircle2Y);
-              Line line = new Line(markedCity1.getX(), markedCity1.getY(), markedCity2.getX(), markedCity2.getY());
-              mapPane.getChildren().add(1, line); // ritar linje först och under andra noder på positionen
-
+              drawConnectionOnMap(markedCity1, markedCity2, connectionName, connectionTime);
+      
               edited = true;
             }
             // hjälpmetod för nollställning av markeringar
