@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -30,7 +29,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -52,7 +50,6 @@ import javafx.scene.shape.Line;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import javafx.util.Callback;
 
 public class Gui extends Application {
 
@@ -679,107 +676,10 @@ public class Gui extends Application {
 
       return Optional.of(new ListEdge<>(markedCity2, connectionName, time));
     }
-    // Hantera det som skrivits in och skicka tillbaka ett resultat från
-    // dialogfönstret
-    // alert.setResultConverter(
-    // new Callback<ButtonType, ButtonType>() {
-    // @Override
-    // public ButtonType call(ButtonType dialogButton) {
-    // if (dialogButton == ButtonType.OK) {
-    // try {
-    // String name = nameField.getText();
-    // String timeText = timeField.getText();
-
-    // if (name.isBlank()) {
-    // writeErrorAlert("Incorrect input:\nEnter a name!");
-    // return null;
-    // } else if (timeText.isBlank()) {
-    // writeErrorAlert("Incorrect input:\nEnter a time!");
-    // return null;
-    // } else if (!timeText.matches("\\d+")) {
-    // writeErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
-    // return null;
-    // } else {
-    // int time = Integer.parseInt(timeText);
-    // return ButtonType.OK;
-    // }
-    // } catch (NumberFormatException e) {
-    // System.err.println("Something went wrong when reading time from
-    // NewConnectionForm!");
-    // return null;
-    // }
-    // } else {
-    // // om denna metod returnerar null innebär det att showAndWait() returnerar en
-    // // tom Optional<Edge<City>
-    // return null;
-    // }
-    // }
-    // });
 
     return Optional.empty();
   }
 
-  // TODO: ta bort när showConnectionForm är helt färdig
-  private class NewConnectionForm extends Dialog<Edge<City>> {
-    private TextField nameField = new TextField();
-    private TextField timeField = new TextField();
-
-    public NewConnectionForm() {
-      // Skapa fönsterkomponenter
-      setTitle("Connection");
-      setHeaderText("Connection from " + markedCity1.getName() + " to " + markedCity2.getName());
-      nameField.setPromptText("Name");
-      timeField.setPromptText("Time");
-
-      GridPane grid = new GridPane();
-      grid.setHgap(12);
-      grid.setVgap(12);
-      grid.add(new Label("Name of connection:"), 0, 0);
-      grid.add(nameField, 1, 0);
-      grid.add(new Label("Travel time:"), 0, 1);
-      grid.add(timeField, 1, 1);
-
-      // Rita dialogfönstret
-      getDialogPane().setContent(grid);
-      getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-      // Hantera det som skrivits in och skicka tillbaka ett resultat från
-      // dialogfönstret
-      setResultConverter(
-          new Callback<ButtonType, Edge<City>>() {
-            @Override
-            public Edge<City> call(ButtonType dialogButton) {
-              if (dialogButton == ButtonType.OK) {
-                try {
-                  String name = nameField.getText();
-                  String timeText = timeField.getText();
-
-                  if (name.isBlank()) {
-                    showErrorAlert("Incorrect input:\nEnter a name!");
-                    return null;
-                  } else if (timeText.isBlank()) {
-                    showErrorAlert("Incorrect input:\nEnter a time!");
-                    return null;
-                  } else if (!timeText.matches("\\d+")) {
-                    showErrorAlert("Incorrect input:\nEnter time as a positive integer value!");
-                    return null;
-                  } else {
-                    int time = Integer.parseInt(timeText);
-                    return new ListEdge<>(markedCity2, name, time);
-                  }
-                } catch (NumberFormatException e) {
-                  System.err.println("Something went wrong when reading time from NewConnectionForm!");
-                  return null;
-                }
-              } else {
-                // om denna metod returnerar null innebär det att showAndWait() returnerar en
-                // tom Optional<Edge<City>
-                return null;
-              }
-            }
-          });
-    }
-  }
 
   class ChangeConnectionHandler implements EventHandler<ActionEvent> {
     @Override
