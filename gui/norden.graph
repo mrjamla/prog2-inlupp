@@ -1,0 +1,10 @@
+file:/G:/jamal/Documents/Inlämningsuppgift/prog2-inlupp/gui/Blank-Map-of-Europe-1.png
+Oslo;353.0;426.0;Reykjavik;108.0;150.0;Köpenhamn;377.0;545.0;Helsingfors;535.0;417.0;Stockholm;455.0;433.0;
+Oslo;Stockholm;E18;5;
+Reykjavik;Stockholm;Iceland Air;5;
+Köpenhamn;Stockholm;Bilväg;6;
+Helsingfors;Stockholm;Viking Line;12;
+Stockholm;Köpenhamn;Bilväg;6;
+Stockholm;Helsingfors;Viking Line;12;
+Stockholm;Oslo;E18;5;
+Stockholm;Reykjavik;Iceland Air;5;

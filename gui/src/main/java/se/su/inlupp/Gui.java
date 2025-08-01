@@ -56,6 +56,10 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
+/**
+ * Huvudklassen i programmet. Klassen har hand om programmets grafiska vy och
+ * interaktionen mellan den och programmets bakomliggande logiska modellen.
+ */
 public class Gui extends Application {
 
   private Stage stage;
@@ -76,20 +80,26 @@ public class Gui extends Application {
   private Circle markedCircle1 = null;
   private Circle markedCircle2 = null;
 
+  /**
+   * Startmetoden för JavaFX-applikation. Skapar och visar programmets grafiska
+   * gränssnitt.
+   * 
+   * @param primaryStage fönstret i vilket gränssnittet byggs upp
+   */
   @Override
   public void start(Stage primaryStage) throws IOException {
-    // skapar en modell för grafen som lagrar alla platser och förbindelser på
-    // kartan
-    graph = new ListGraph<>();
-
-    // Fixar så dialogfönster öppnas från projektets rotmapp.
-    File projectRoot = new File(System.getProperty("user.dir")); // TODO:gör tillgänglig som en konstant på klassnivå
+    // Fix: så dialogfönster öppnas från projektets rotmapp.
+    File projectRoot = new File(System.getProperty("user.dir"));
     if (projectRoot.exists()) {
       fileChooser = new FileChooser();
       fileChooser.setInitialDirectory(projectRoot);
     } else {
       throw new IOException("Project directory not found!");
+
     }
+
+    // skapar en modell för grafen som lagrar alla platser och förbindelser
+    graph = new ListGraph<>();
 
     // skapar en filmeny
     MenuItem newMap = new MenuItem("New map");
@@ -114,7 +124,6 @@ public class Gui extends Application {
     showConn.setOnAction(new ShowConnectionHandler());
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
-
     Button newConn = new Button("New Connection");
     newConn.setOnAction(new NewConnectionHandler());
     Button changeConn = new Button("Change Connection");
@@ -152,10 +161,21 @@ public class Gui extends Application {
     stage.show();
   }
 
+  /**
+   * GUI-klassens startmetod. Körs först i programmet och sjösätter
+   * JavaFX-applikationen.
+   * 
+   * @param args eventuella argument som angetts utifrån vid programanrop
+   */
   public static void main(String[] args) {
     launch(args);
   }
 
+  /**
+   * Visar ett fönster med angivet felmeddelande för användaren.
+   * 
+   * @param prompt felmeddelandet som ska visas
+   */
   private void showErrorAlert(String prompt) {
     Alert alert = new Alert(AlertType.ERROR);
     alert.setTitle("Error!");
@@ -164,6 +184,13 @@ public class Gui extends Application {
     alert.showAndWait();
   }
 
+  /**
+   * Skapar och ritar ut en plats på kartan.
+   * 
+   * @param name platsens namn
+   * @param x    horisontell koordinat på kartan
+   * @param y    vertikal koordinat på kartan
+   */
   private void drawPlaceOnMap(String name, double x, double y) {
     // Skapa cirkel
     Circle circle = new Circle(x, y, 12);
@@ -185,6 +212,14 @@ public class Gui extends Application {
     mapPane.getChildren().add(cityCircle);
   }
 
+  /**
+   * Skapar och ritar ut en anslutning mellan två platser på kartan.
+   * 
+   * @param place1 en plats
+   * @param place2 en annan plats
+   * @param name   namn på anslutningen
+   * @param time   restiden att färdas via anslutningen
+   */
   private void drawConnectionOnMap(City place1, City place2, String name, int time) {
     // TODO: Kolla upp varför circle.getCenterX/Y() inte ger rätt koordinater
     // Line line = new Line(markedCityCircle1X, markedCityCircle1Y,
@@ -219,7 +254,7 @@ public class Gui extends Application {
   /**
    * Ändrar bakgrundsbilden på vilken kartgrafen ritas ut.
    * 
-   * @param filePath
+   * @param filePath sökväg till ny bakgrundsbild
    */
   private void changeMapImage(String filePath) {
     // steg 1: hämtar bild på karta och ritar ut i kartvy
@@ -233,6 +268,9 @@ public class Gui extends Application {
     stage.sizeToScene();
   }
 
+  /**
+   * Hanterar vad som ska ske när "New map"-menyvalet väljs.
+   */
   class NewMapItemHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
@@ -250,122 +288,21 @@ public class Gui extends Application {
 
       if (!event.isConsumed()) { // om händelse fortfarande pågår
         File file = fileChooser.showOpenDialog(stage);
-
         if (file != null) {
           resetMapGraph();
           changeMapImage(file.toURI().toString());
-
           edited = false;
         }
       }
     }
   }
 
-  private void openMap(String filePath) {
-    System.out.println(filePath);
-
-    try (FileReader fileReader = new FileReader(filePath); BufferedReader reader = new BufferedReader(fileReader)) {
-      // TODO: Byt ut till genomgång av fil med Iterator<String> lineItertor =
-      // reader.lines().iterator();
-
-      resetMapGraph();
-      // Byt kartbild i fönstret
-      String mapPath = reader.readLine();
-      changeMapImage(mapPath);
-
-      // Hämta och sätt in alla platser i grafen
-      String cityRow = reader.readLine();
-      String[] cityRecords = cityRow.split(";");
-      int nameIndex = 0;
-      int xIndex = 1;
-      int yIndex = 2;
-
-      while (nameIndex < cityRecords.length) {
-        try {
-          City city = new City(cityRecords[nameIndex], Double.parseDouble(cityRecords[xIndex]),
-              Double.parseDouble(cityRecords[yIndex]));
-          graph.add(city);
-          drawPlaceOnMap(city.getName(), city.getX(), city.getY());
-
-        } catch (NumberFormatException nfe) {
-          System.err.println("Expected a double, but got something else: " + nfe.getMessage());
-        }
-
-        nameIndex += 3;
-        xIndex = nameIndex + 1;
-        yIndex = nameIndex + 2;
-      }
-
-      // Hämta och sätt in alla anslutningar mellan platser i grafen
-      String connectionRow = reader.readLine();
-      String[] connectionData;
-      Set<City> cities = graph.getNodes();
-      Optional<City> origin = Optional.empty();
-      Optional<City> destination = Optional.empty();
-      String readCityName;
-      String connectionName;
-      int weight;
-      // Pga ordningen som anslutningarna sparas i filen med Save-funktionen,
-      // och att connect-metoden skapar dubbelriktade anslutningar,
-      // så kan man hålla reda på vilka städer som har varit startpunkter i tidigare
-      // anslutningar
-      // för att ignorera deras spegelvända anslutningar där samma städer är
-      // destinationer när
-      // de läses av från filen. Metoden kommer ju lägga till båda när ena fallet
-      // läses av från filen.
-      Set<String> visitedAsOrigin = new HashSet<>();
-
-      while (connectionRow != null) {
-        connectionData = connectionRow.split(";");
-
-        // Hitta platsen som hör till inläst startpunktsnamn
-        readCityName = connectionData[0];
-        for (City city : cities) {
-          if (city.getName().equals(readCityName)) {
-            origin = Optional.of(city);
-            break;
-          }
-        }
-
-        // Hitta platsen som hör till inläst destinationsnamn
-        readCityName = connectionData[1];
-        // Kontrollera så destinationen inte redan dykt upp som en startpunkt tidigare
-        if (!visitedAsOrigin.contains(readCityName)) {
-          for (City city : cities) {
-            if (city.getName().equals(readCityName)) {
-              destination = Optional.of(city);
-              break;
-            }
-          }
-
-          if (origin.isPresent() && destination.isPresent()) {
-            connectionName = connectionData[2];
-            try {
-              weight = Integer.parseInt(connectionData[3]);
-              graph.connect(origin.get(), destination.get(), connectionName, weight);
-              drawConnectionOnMap(origin.get(), destination.get(), connectionName, weight);
-              // Lägg till att startpunkten har besökts
-              visitedAsOrigin.add(origin.get().getName());
-            } catch (NumberFormatException nfe) {
-              System.err.println("Expected an integer, but got something else: " + nfe.getMessage());
-            }
-
-          }
-
-        }
-        // Läs in nästa rad, om den finns, med anslutningsdata
-        connectionRow = reader.readLine();
-      }
-
-    } catch (FileNotFoundException ex) {
-      System.err.println("Can't open file, because %s".formatted(ex.getMessage()));
-    } catch (IOException ex) {
-      System.err.println("IO error %s".formatted(ex.getMessage()));
-    }
-  }
-
   // TODO: Extrahera ut delad funktionalitet ur OpenMapItemHandler och
-  // NewMapItemHandler och ha i en hjälpmetod
+  // NewMapItemHandler och ha i en hjälpmetod public boolean
+  // saveRequired(ActionEvent event){return event.isConsumed();}
+  /**
+   * 
+   */
   class OpenMapItemHandler implements EventHandler<ActionEvent> {
 
     @Override
@@ -393,8 +330,135 @@ public class Gui extends Application {
         }
       }
     }
+
+    /**
+     * Öppnar en karta från en fil i programfönstret.
+     * 
+     * @param filePath sökväg till formaterad fil med kartdata
+     */
+    private void openMap(String filePath) {
+      System.out.println(filePath);
+
+      try (FileReader fileReader = new FileReader(filePath); BufferedReader reader = new BufferedReader(fileReader)) {
+        // TODO: Byt ut till genomgång av fil med Iterator<String> lineItertor =
+        // reader.lines().iterator();
+
+        resetMapGraph();
+        // Byt kartbild i fönstret
+        String mapPath = reader.readLine();
+        changeMapImage(mapPath);
+
+        // Hämta och sätt in alla platser i grafen
+        String cityRow = reader.readLine();
+        drawLocations(cityRow.split(";"));
+
+        // Hämta och sätt in alla anslutningar mellan platser i grafen
+        drawConnections(reader);
+
+      } catch (FileNotFoundException ex) {
+        System.err.println("Can't open file, because %s".formatted(ex.getMessage()));
+      } catch (IOException ex) {
+        System.err.println("IO error %s".formatted(ex.getMessage()));
+      }
+    }
+
+    /**
+     * Tolkar platsdata och skriver ut alla platser på kartan.
+     */
+    private void drawLocations(String[] LocationsData) {
+      int nameIndex = 0;
+      int xIndex = 1;
+      int yIndex = 2;
+
+      while (nameIndex < LocationsData.length) {
+        try {
+          City city = new City(LocationsData[nameIndex], Double.parseDouble(LocationsData[xIndex]),
+              Double.parseDouble(LocationsData[yIndex]));
+          graph.add(city);
+          drawPlaceOnMap(city.getName(), city.getX(), city.getY());
+
+        } catch (NumberFormatException nfe) {
+          System.err.println("Expected a double, but got something else: " + nfe.getMessage());
+        }
+        nameIndex += 3;
+        xIndex = nameIndex + 1;
+        yIndex = nameIndex + 2;
+      }
+    }
+
+    /**
+     * 
+     * @param reader
+     * @throws IOException
+     */
+    private void drawConnections(BufferedReader reader) throws IOException {
+      final int originIndex = 0;
+      final int destinationIndex = 1;
+      final int connectionNameIndex = 2;
+      final int connectionWeightIndex = 3;
+      Optional<City> origin;
+      Optional<City> destination;
+      int weight;
+      /*
+       * Pga ordningen som anslutningarna sparas i filen med Save-funktionen,
+       * och att connect-metoden skapar dubbelriktade anslutningar, så bör
+       * spegelvända anslutningar i filen där startpunkt och destination bytt plats
+       * ignoreras. Annars får man ett felmeddelande när man försöker sätta in
+       * en redan befintlig koppling igen i grafen. Genom att spara städer som har
+       * varit startpunkter i tidigare anslutningar kan dessa försök att lägga till
+       * en anslutning igen undvikas.
+       */
+      Set<String> visitedAsOrigin = new HashSet<>();
+      String connectionRow = reader.readLine();
+      String[] connectionData;
+
+      while (connectionRow != null) {
+        connectionData = connectionRow.split(";");
+
+        // Hitta platsen som hör till inläst startpunktsnamn
+        origin = findLocation(connectionData[originIndex]);
+
+        // Hitta platsen som hör till inläst destinationsnamn
+        // Kontrollera så destinationen inte redan dykt upp som en startpunkt tidigare
+        if (!visitedAsOrigin.contains(connectionData[destinationIndex])) {
+          destination = findLocation(connectionData[destinationIndex]);
+          if (origin.isPresent() && destination.isPresent()) {
+            try {
+              weight = Integer.parseInt(connectionData[connectionWeightIndex]);
+              graph.connect(origin.get(), destination.get(), connectionData[connectionNameIndex], weight);
+              drawConnectionOnMap(origin.get(), destination.get(), connectionData[connectionNameIndex], weight);
+              // Lägg till att startpunkten har besökts
+              visitedAsOrigin.add(origin.get().getName());
+            } catch (NumberFormatException nfe) {
+              System.err.println("Expected an integer, but got something else: " + nfe.getMessage());
+            }
+          }
+        }
+        // Läs in nästa rad, om den finns, med anslutningsdata
+        connectionRow = reader.readLine();
+      }
+    }
+
+
+    /**
+     * Letar efter en plats i grafen baserat på dess namn.
+     * @param name platsen namn
+     * @return korresponderande platsnod, om den hittas
+     */
+    private Optional<City> findLocation(String name) {
+      for (City city : graph.getNodes()) {
+        if (city.getName().equals(name)) {
+          return Optional.of(city);
+        }
+      }
+      return Optional.empty();
+    }
   }
 
+  /**
+   * 
+   * @param filePath
+   */
   private void saveMap(String filePath) {
 
     try (FileWriter fileWriter = new FileWriter(filePath); PrintWriter writer = new PrintWriter(fileWriter)) {
@@ -424,6 +488,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   */
   class SaveMapItemHandler implements EventHandler<ActionEvent> {
 
     @Override
@@ -439,6 +506,9 @@ public class Gui extends Application {
 
   }
 
+  /**
+   * 
+   */
   class MapClickHandler implements EventHandler<MouseEvent> {
 
     @Override
@@ -508,6 +578,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   */
   class CityGroupClickHandler implements EventHandler<MouseEvent> {
 
     @Override
@@ -564,16 +637,23 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * Hanterar vad som ska ske när New Place-knappen väljs.
+   */
   class NewPlaceHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
       newPlace.setDisable(true);
       scene.setCursor(Cursor.CROSSHAIR);
-
       mapPane.setOnMouseClicked(new MapClickHandler());
     }
   }
 
+  /**
+   * Kontrollerar om två platser markerats på kartan.
+   * 
+   * @return sant om det stämmer, annars falskt
+   */
   private boolean twoPlacesSelected() {
     boolean bothSelected = !(markedCity1 == null || markedCity2 == null);
     if (!bothSelected) {
@@ -596,6 +676,10 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   * @param choice
+   */
   private void disableButtons(boolean choice) {
     // findPath.setDisable(choice);
     // showConn.setDisable(choice);
@@ -692,6 +776,9 @@ public class Gui extends Application {
     return Optional.empty();
   }
 
+  /**
+   * 
+   */
   class ChangeConnectionHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
@@ -726,6 +813,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   */
   class ShowConnectionHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
@@ -751,6 +841,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   */
   class FindPathHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
       List<Edge<City>> path = graph.getPath(markedCity1, markedCity2);
@@ -790,6 +883,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   */
   class NewConnectionHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
@@ -826,6 +922,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   */
   private class ExitItemHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent arg0) {
@@ -833,6 +932,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * 
+   */
   class ExitHandler implements EventHandler<WindowEvent> {
     @Override
     public void handle(WindowEvent event) {
@@ -851,6 +953,9 @@ public class Gui extends Application {
     }
   }
 
+  /**
+   * Hanterar vad som ska ske när "Save Image"-menyvalet väljs.
+   */
   private class SaveImageItemHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent event) {
       Alert alert;
@@ -858,7 +963,8 @@ public class Gui extends Application {
         WritableImage image = centerPane.snapshot(null, null);
         BufferedImage bufferedImage = SwingFXUtils.fromFXImage(image, null);
         ImageIO.write(bufferedImage, "png", new File("capture.png"));
-        alert = new Alert(AlertType.CONFIRMATION, "Snapshot saved as capture.png");
+        alert = new Alert(AlertType.INFORMATION, "Snapshot saved as capture.png");
+        alert.setHeaderText(null);
       } catch (IOException e) {
         alert = new Alert(Alert.AlertType.ERROR, "IO Error " + e.getMessage());
       }
