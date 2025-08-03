@@ -1,39 +1,39 @@
 package se.su.inlupp;
 
-public class City{
+public class Place{
 
-    private String cityName;
+    private String name;
     private double x;
     private double y;
 
-    public City(String cityName , double x , double y){
-        this.cityName = cityName;
+    public Place(String name , double x , double y){
+        this.name = name;
         this.x = x;
         this.y = y;
     }
 
     @Override
     public boolean equals(Object obj){
-        City other = (City) obj;
+        Place other = (Place) obj;
         
         if(this == obj){
             return true;
         }
 
-        if(!(obj instanceof City)){
+        if(!(obj instanceof Place)){
             return false;
         }
-        // två städer är lika om de delar namn (case-insensitive)
-        return this.cityName.toLowerCase().equals(other.cityName.toLowerCase()); //&& this.x == other.x && this.y == other.y;
+        // två platser är lika om de delar namn (case-insensitive)
+        return this.name.toLowerCase().equals(other.name.toLowerCase()); //&& this.x == other.x && this.y == other.y;
     }
 
     @Override
     public int hashCode(){
-        return cityName.hashCode();
+        return name.hashCode();
     }
 
     public String getName(){
-        return cityName;
+        return name;
     }
 
     public double getX(){
@@ -46,6 +46,6 @@ public class City{
     
     @Override
     public String toString(){
-        return "%s (%f, %f)".formatted(cityName, x, y);
+        return "%s (%f, %f)".formatted(name, x, y);
     }
 }

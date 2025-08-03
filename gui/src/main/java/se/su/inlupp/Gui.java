@@ -74,18 +74,19 @@ public class Gui extends Application {
   private ImageView imageView;
   private Pane mapPane;
   private FlowPane centerPane;
-  private Scene scene;
+  private FlowPane buttonPane;
   private Button newPlace;
+  private Scene scene;
   private VBox vbox;
-  private Graph<City> graph;
+  private Graph<Place> graph;
   private BorderPane root;
 
   private boolean edited;
 
-  private City markedPlace1 = null;
-  private City markedPlace2 = null;
-  private Circle markedCircle1 = null;
-  private Circle markedCircle2 = null;
+  private Place selectedPlace1 = null;
+  private Place selectedPlace2 = null;
+  private Circle selectedCircle1 = null;
+  private Circle selectedCircle2 = null;
 
   /**
    * Startmetoden för JavaFX-applikation. Skapar och visar programmets grafiska
@@ -104,11 +105,9 @@ public class Gui extends Application {
       throw new IOException("Project directory not found!");
 
     }
-
-    // skapar en modell för grafen som lagrar alla platser och förbindelser
+    // grafen som lagrar alla platser och förbindelser
     graph = new ListGraph<>();
-
-    // skapar en filmeny
+    // filmeny
     MenuItem newMap = new MenuItem("New map");
     newMap.setOnAction(new NewMapItemHandler());
     MenuItem open = new MenuItem("Open");
@@ -116,45 +115,38 @@ public class Gui extends Application {
     MenuItem save = new MenuItem("Save");
     save.setOnAction(new SaveMapItemHandler());
     MenuItem saveImage = new MenuItem("Save Image");
-    saveImage.setOnAction(new SaveImageItemHandler()); // se frl video efter 01:29:00
+    saveImage.setOnAction(new SaveImageItemHandler());
     MenuItem exit = new MenuItem("Exit");
     exit.setOnAction(new ExitItemHandler());
-
     Menu menu = new Menu("File");
     menu.getItems().addAll(newMap, open, save, saveImage, exit);
     MenuBar menuBar = new MenuBar(menu);
-
-    // skapar en knapplist
+    // knapplist
     Button findPath = new Button("Find Path");
     findPath.setOnAction(new FindPathHandler());
-    Button showConn = new Button("Show Connection");
-    showConn.setOnAction(new ShowConnectionHandler());
+    Button showConnection = new Button("Show Connection");
+    showConnection.setOnAction(new ShowConnectionHandler());
     newPlace = new Button("New Place");
     newPlace.setOnAction(new NewPlaceHandler());
-    Button newConn = new Button("New Connection");
-    newConn.setOnAction(new NewConnectionHandler());
-    Button changeConn = new Button("Change Connection");
-    changeConn.setOnAction(new ChangeConnectionHandler());
-
-    FlowPane buttonPane = new FlowPane(findPath, showConn, newPlace, newConn, changeConn);
+    Button newConnection = new Button("New Connection");
+    newConnection.setOnAction(new NewConnectionHandler());
+    Button changeConnection = new Button("Change Connection");
+    changeConnection.setOnAction(new ChangeConnectionHandler());
+    buttonPane = new FlowPane(findPath, showConnection, newPlace, newConnection, changeConnection);
     buttonPane.setAlignment(Pos.CENTER);
     buttonPane.setOrientation(Orientation.HORIZONTAL);
     buttonPane.setHgap(5);
     buttonPane.setVgap(5);
     buttonPane.setPadding(new Insets(5));
-
-    // skapar en behållare för alla knapp- och menykomponenter
+    // behållare för alla knapp- och menykomponenter
     vbox = new VBox(menuBar, buttonPane);
-
-    // skapar en karta som med en bildvy
+    // karta med en bildvy
     imageView = new ImageView();
     mapPane = new Pane(imageView);
-
-    // skapar en behållare till alla kartkomponenter
+    // behållare till alla kartkomponenter
     centerPane = new FlowPane(mapPane);
     centerPane.setAlignment(Pos.CENTER);
-
-    // skapar en behållare (rotnod) till alla komponenter i fönstret
+    // behållare (rotnod) till alla komponenter i fönstret
     root = new BorderPane();
     root.setTop(vbox);
     root.setCenter(centerPane);
@@ -166,6 +158,8 @@ public class Gui extends Application {
     scene = new Scene(root);
     stage.setScene(scene);
     stage.show();
+
+    buttonPane.setDisable(true);
   }
 
   /**
@@ -221,19 +215,16 @@ public class Gui extends Application {
     // Skapa cirkel
     Circle circle = new Circle(x, y, 12);
     circle.setFill(Color.PINK);
-
     // Skapa etikett
     Label cityLabel = new Label(name);
     cityLabel.setLayoutX(x + 6);
     cityLabel.setLayoutY(y + 6);
     cityLabel.setStyle("fx-font-family: 'Calibri'; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: black;");
     cityLabel.setLabelFor(circle);
-
     // Skapa behållare för stadens etikett och cirkel
     Group cityCircle = new Group();
     cityCircle.getChildren().addAll(circle, cityLabel);
     cityCircle.setOnMouseClicked(new GroupClickHandler());
-
     // Lägg in plats i kartan
     mapPane.getChildren().add(cityCircle);
   }
@@ -246,14 +237,9 @@ public class Gui extends Application {
    * @param name   namn på anslutningen
    * @param time   restiden att färdas via anslutningen
    */
-  private void drawConnectionOnMap(City place1, City place2, String name, int time) {
-    // TODO: Kolla upp varför circle.getCenterX/Y() inte ger rätt koordinater
-    // Line line = new Line(markedCityCircle1X, markedCityCircle1Y,
-    // markedCityCircle2X, markedCityCircle2Y);
-
+  private void drawConnectionOnMap(Place place1, Place place2) {
     // Skapa en linje mellan de två platsernas koordinater
     Line line = new Line(place1.getX(), place1.getY(), place2.getX(), place2.getY());
-
     // Rita linjen först och under andra noder på positionen
     mapPane.getChildren().add(1, line);
   }
@@ -300,22 +286,141 @@ public class Gui extends Application {
    * @param name platsen namn
    * @return korresponderande platsnod, om den hittas
    */
-  private Optional<City> findLocation(String name) {
-    for (City location : graph.getNodes()) {
+  private Optional<Place> findLocation(String name) {
+    for (Place location : graph.getNodes()) {
       if (location.getName().equals(name)) {
         return Optional.of(location);
       }
     }
     return Optional.empty();
-    // Iterator<City> places = graph.getNodes().iterator();
-    // Optional<City> foundLocation = Optional.empty();
-    // City existingPlace;
-    // while (places.hasNext() && foundLocation.isEmpty()) {
-    // existingPlace = places.next();
-    // if (existningPlace.getName().equals(placeName)) {
-    // foundLocation = Optional.of(existingPlace);
-    // }
-    // return location;
+  }
+
+  /**
+   * Kontrollerar om två platser markerats på kartan.
+   * 
+   * @return sant om det stämmer, annars falskt
+   */
+  private boolean twoPlacesSelected() {
+    boolean bothSelected = !(selectedPlace1 == null || selectedPlace2 == null);
+    if (!bothSelected) {
+      showErrorAlert("Two places must be selected!");
+    }
+    return bothSelected;
+  }
+
+  /**
+   * Återställer markeringar på kartan.
+   */
+  private void clearSelectedPlaces() {
+    selectedPlace1 = null;
+    selectedPlace2 = null;
+    if (selectedCircle1 != null) {
+      selectedCircle1.setFill(Color.PINK);
+    }
+    if (selectedCircle2 != null) {
+      selectedCircle2.setFill(Color.PINK);
+    }
+  }
+
+  /**
+   * När en dialogrutan behövs för att hantera en anslutning på något sätt,
+   * så visas den via denna metod.
+   * 
+   * @param connectionName namnet på anslutningen
+   * @param time           restiden att använda anslutningen
+   * @param nameEditable   namn går att redigera
+   * @param timeEditable   tid går att redigera
+   * @return en kant som representerar anslutningen, om allt går bra
+   */
+  private Optional<Edge<Place>> showConnectionForm(String connectionName, int time, boolean nameEditable,
+      boolean timeEditable) {
+    Alert alert = new Alert(AlertType.CONFIRMATION);
+    alert.setTitle("Connection");
+    alert.setHeaderText("Connection from " + selectedPlace1.getName() + " to " + selectedPlace2.getName());
+
+    Label nameLabel = new Label("Name of connection:");
+    TextField nameField;
+    if (connectionName != null && connectionName.matches(PROPER_NAME_REGEX))
+      nameField = new TextField(connectionName);
+    else
+      nameField = new TextField("");
+    nameField.setEditable(nameEditable);
+
+    Label timeLabel = new Label("Travel time:");
+    TextField timeField;
+    if (time > 0)
+      timeField = new TextField(String.valueOf(time));
+    else
+      timeField = new TextField("");
+    timeField.setEditable(timeEditable);
+
+    final int SPACING_VALUE = 12;
+    GridPane grid = new GridPane();
+    grid.setHgap(SPACING_VALUE);
+    grid.setVgap(SPACING_VALUE);
+    grid.add(nameLabel, 0, 0);
+    grid.add(nameField, 1, 0);
+    grid.add(timeLabel, 0, 1);
+    grid.add(timeField, 1, 1);
+    alert.getDialogPane().setContent(grid);
+    alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+
+    // Här börjar visning och svarshantering
+    Optional<ButtonType> result = alert.showAndWait();
+    if (result.isPresent() && result.get().equals(ButtonType.OK)) {
+      if (nameEditable) {
+        String nameText = nameField.getText();
+        if (nameText.isBlank()) {
+          showErrorAlert("Input missing:\nEnter a name!");
+          return Optional.empty();
+        } else if (nameText.matches(PROPER_NAME_REGEX)) {
+          connectionName = nameText;
+        } else {
+          showErrorAlert("Invalid format:\nEnter a proper name!");
+          return Optional.empty();
+        }
+      }
+      if (timeEditable) {
+        String timeText = timeField.getText();
+        if (timeText.isBlank()) {
+          showErrorAlert("Input missing:\nEnter a time!");
+          return Optional.empty();
+        } else if (!timeText.matches("\\d+")) {
+          showErrorAlert("Invalid format:\nEnter time as a positive integer value!");
+          return Optional.empty();
+        } else {
+          time = Integer.parseInt(timeText);
+        }
+      }
+      return Optional.of(new ListEdge<>(selectedPlace2, connectionName, time));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Hämtar en anslutning mellan de två valda platserna och ger ett felmeddelande
+   * utgående från om anslutningen förväntas hittas eller inte.
+   * 
+   * @param connectionExpected om en anslutning förväntas hittas
+   * @return en kant som representerar anslutningen, om den finns
+   */
+  private Optional<Edge<Place>> getConnectionBetweenSelectedPlaces(boolean connectionExpected) {
+    Optional<Edge<Place>> result = Optional.empty();
+    Edge<Place> connection = graph.getEdgeBetween(selectedPlace1, selectedPlace2);
+    if (connectionExpected) {
+      if (connection == null) {
+        showErrorAlert("There exists no connection between " + selectedPlace1.getName() + " and "
+            + selectedPlace2.getName() + "!");
+        result = Optional.of(connection);
+      }
+    } else {
+      if (connection == null) {
+        showErrorAlert("There already exists a connection between these places!");
+      } else {
+        result = Optional.of(connection);
+      }
+    }
+    return result;
   }
 
   /**
@@ -325,12 +430,13 @@ public class Gui extends Application {
     @Override
     public void handle(ActionEvent event) {
       checkForUnsavedChanges(event);
-      if (!event.isConsumed()) { // om händelse fortfarande pågår
+      if (!event.isConsumed()) {
         File file = fileChooser.showOpenDialog(stage);
         if (file != null) {
           resetMapGraph();
           changeMapImage(file.toURI().toString());
           edited = false;
+          buttonPane.setDisable(false);
         }
       }
     }
@@ -349,6 +455,8 @@ public class Gui extends Application {
         if (graphFile != null) {
           openMap(graphFile.getAbsolutePath());
           edited = false;
+          buttonPane.setDisable(false);
+          buttonPane.requestFocus();
         }
       }
     }
@@ -367,15 +475,14 @@ public class Gui extends Application {
         String mapPath = reader.readLine();
         changeMapImage(mapPath);
         // Hämta och sätt in alla platser i grafen
-        String cityRow = reader.readLine();
-        drawLocations(cityRow.split(";"));
+        String locationRow = reader.readLine();
+        drawLocations(locationRow.split(";"));
         // Hämta och sätt in alla anslutningar mellan platser i grafen
         drawConnections(reader);
-
       } catch (FileNotFoundException ex) {
-        System.err.println("Can't open file, because %s".formatted(ex.getMessage()));
+        showErrorAlert("Can't open file, because %s".formatted(ex.getMessage()));
       } catch (IOException ex) {
-        System.err.println("IO error %s".formatted(ex.getMessage()));
+        showErrorAlert("IO error %s".formatted(ex.getMessage()));
       }
     }
 
@@ -388,7 +495,7 @@ public class Gui extends Application {
       int yIndex = 2;
       while (nameIndex < LocationsData.length) {
         try {
-          City city = new City(LocationsData[nameIndex], Double.parseDouble(LocationsData[xIndex]),
+          Place city = new Place(LocationsData[nameIndex], Double.parseDouble(LocationsData[xIndex]),
               Double.parseDouble(LocationsData[yIndex]));
           graph.add(city);
           drawPlaceOnMap(city.getName(), city.getX(), city.getY());
@@ -412,8 +519,8 @@ public class Gui extends Application {
       final int destinationIndex = 1;
       final int connectionNameIndex = 2;
       final int connectionWeightIndex = 3;
-      Optional<City> origin;
-      Optional<City> destination;
+      Optional<Place> origin;
+      Optional<Place> destination;
       int weight;
       /*
        * Pga ordningen som anslutningarna sparas i filen med Save-funktionen,
@@ -439,7 +546,7 @@ public class Gui extends Application {
             try {
               weight = Integer.parseInt(connectionData[connectionWeightIndex]);
               graph.connect(origin.get(), destination.get(), connectionData[connectionNameIndex], weight);
-              drawConnectionOnMap(origin.get(), destination.get(), connectionData[connectionNameIndex], weight);
+              drawConnectionOnMap(origin.get(), destination.get());
               // Lägg till att startpunkten har besökts
               visitedAsOrigin.add(origin.get().getName());
             } catch (NumberFormatException nfe) {
@@ -478,15 +585,15 @@ public class Gui extends Application {
         String imagePath = imageView.getImage().getUrl();
         writer.println(imagePath);
         // Spara grafens platser i filen
-        Set<City> places = graph.getNodes();
-        for (City place : places) {
+        Set<Place> places = graph.getNodes();
+        for (Place place : places) {
           // Uppgifter sparas på en rad semikolonseparerade
           writer.print(String.format("%s;%s;%s;", place.getName(), place.getX(), place.getY()));
         }
         writer.println();
         // Spara grafens anslutningar i filen
-        for (City origin : places) {
-          for (Edge<City> connection : graph.getEdgesFrom(origin)) {
+        for (Place origin : places) {
+          for (Edge<Place> connection : graph.getEdgesFrom(origin)) {
             // Uppgifter sparas rad för rad semikolonseparerade
             writer.println(String.format("%s;%s;%s;%s;", origin.getName(), connection.getDestination().getName(),
                 connection.getName(), connection.getWeight()));
@@ -497,6 +604,38 @@ public class Gui extends Application {
       } catch (IOException ex) {
         System.err.println("IO error %s".formatted(ex.getMessage()));
       }
+    }
+  }
+
+  /**
+   * Hanterar vad som ska ske när "Save Image"-menyvalet väljs.
+   */
+  class SaveImageItemHandler implements EventHandler<ActionEvent> {
+    public void handle(ActionEvent event) {
+      Alert alert;
+      try {
+        WritableImage image = centerPane.snapshot(null, null);
+        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(image, null);
+        ImageIO.write(bufferedImage, "png", new File("capture.png"));
+        alert = new Alert(AlertType.INFORMATION, "Snapshot saved as capture.png");
+        alert.setHeaderText(null);
+      } catch (IOException e) {
+        alert = new Alert(Alert.AlertType.ERROR, "IO Error " + e.getMessage());
+      }
+      alert.showAndWait();
+    }
+  }
+
+  /**
+   * Hanterar vad som ska ske när "New Place"-knappen trycks på.
+   */
+  class NewPlaceHandler implements EventHandler<ActionEvent> {
+    @Override
+    public void handle(ActionEvent event) {
+      buttonPane.setDisable(true);
+      mapPane.requestFocus();
+      scene.setCursor(Cursor.CROSSHAIR);
+      mapPane.setOnMouseClicked(new MapClickHandler());
     }
   }
 
@@ -524,8 +663,8 @@ public class Gui extends Application {
             double x = event.getX();
             double y = event.getY();
             // Skapa en platsnod och lägg in grafmodellen
-            City cityNode = new City(placeName, x, y);
-            graph.add(cityNode);
+            Place placeNode = new Place(placeName, x, y);
+            graph.add(placeNode);
             // Rita ut platsen på kartan
             drawPlaceOnMap(placeName, x, y);
             edited = true;
@@ -535,7 +674,7 @@ public class Gui extends Application {
         }
       }
       scene.setCursor(Cursor.DEFAULT);
-      newPlace.setDisable(false);
+      buttonPane.setDisable(false);
       newPlace.requestFocus();
       mapPane.setOnMouseClicked(null);
     }
@@ -577,8 +716,8 @@ public class Gui extends Application {
   /**
    * Hanterar vad som ska ske när en platsgrupp på kartan klickas på.
    */
-  class GroupClickHandler implements EventHandler<MouseEvent> { 
-    private City clickedPlace;
+  class GroupClickHandler implements EventHandler<MouseEvent> {
+    private Place clickedPlace;
     private Circle clickedCircle;
 
     @Override
@@ -590,175 +729,44 @@ public class Gui extends Application {
       Label clickedLabel = (Label) list.get(1);
       String locationName = clickedLabel.getText();
       // Ta fram vilken stad cirkeln refererar till
-      clickedPlace = findLocation(locationName).get(); // OBS: fungerar så länge plats inte får ha samma namn
-      // Just in case...
-      if (clickedPlace == null) {
-        throw new NullPointerException("City-node expected, null found!");
+      try {
+        clickedPlace = findLocation(locationName).get(); // OBS: fungerar så länge plats inte får ha samma namn
+        selectPlaceOnMap();
+        // Just in case...
+      } catch (NoSuchElementException e) {
+        showErrorAlert("City-node expected, null found!\n%s".formatted(e.getMessage()));
       }
-      markClickedPlaceOnMap();
     }
 
     /**
      * Markerar klickad plats, om två platser inte är redan markerade.
      * Avmarkerar klickad plats om den är markerad.
      */
-    private void markClickedPlaceOnMap(){
-      if (markedPlace1 == null && markedPlace2 == null) { // inget markerat sen tidigare, markera klickad plats
-        markedPlace1 = clickedPlace;
-        markedCircle1 = clickedCircle;
-        markedCircle1.setFill(Color.PURPLE);
-      } else if (clickedPlace.equals(markedPlace1)) { // klickad plats redan markerad, ta bort markering
-        markedPlace1 = null;
-        markedCircle1.setFill(Color.PINK);
-        markedCircle1 = null;
-      } else if (clickedPlace.equals(markedPlace2)) {
-        markedPlace2 = null;
-        markedCircle2.setFill(Color.PINK);
-        markedCircle2 = null;
-      } else if (markedPlace1 == null) { // klickad plats inte markerad, markera klickad stad
-        markedPlace1 = clickedPlace;
-        markedCircle1 = clickedCircle;
-        markedCircle1.setFill(Color.PURPLE);
-      } else if (markedPlace2 == null) {
-        markedPlace2 = clickedPlace;
-        markedCircle2 = clickedCircle;
-        markedCircle2.setFill(Color.PURPLE);
+    private void selectPlaceOnMap() {
+      if (selectedPlace1 == null && selectedPlace2 == null) { // inget markerat sen tidigare, markera klickad plats
+        selectedPlace1 = clickedPlace;
+        selectedCircle1 = clickedCircle;
+        selectedCircle1.setFill(Color.PURPLE);
+      } else if (clickedPlace.equals(selectedPlace1)) { // klickad plats redan markerad, ta bort markering
+        selectedPlace1 = null;
+        selectedCircle1.setFill(Color.PINK);
+        selectedCircle1 = null;
+      } else if (clickedPlace.equals(selectedPlace2)) {
+        selectedPlace2 = null;
+        selectedCircle2.setFill(Color.PINK);
+        selectedCircle2 = null;
+      } else if (selectedPlace1 == null) { // klickad plats inte markerad, markera klickad stad
+        selectedPlace1 = clickedPlace;
+        selectedCircle1 = clickedCircle;
+        selectedCircle1.setFill(Color.PURPLE);
+      } else if (selectedPlace2 == null) {
+        selectedPlace2 = clickedPlace;
+        selectedCircle2 = clickedCircle;
+        selectedCircle2.setFill(Color.PURPLE);
       } else { // markeringar upptagna, ignorera klickad plats
 
       }
     }
-  }
-
-  /**
-   * Hanterar vad som ska ske när New Place-knappen trycks på.
-   */
-  class NewPlaceHandler implements EventHandler<ActionEvent> {
-    @Override
-    public void handle(ActionEvent event) {
-      newPlace.setDisable(true);
-      scene.setCursor(Cursor.CROSSHAIR);
-      mapPane.setOnMouseClicked(new MapClickHandler());
-    }
-  }
-
-  /**
-   * Kontrollerar om två platser markerats på kartan.
-   * 
-   * @return sant om det stämmer, annars falskt
-   */
-  private boolean twoPlacesSelected() {
-    boolean bothSelected = !(markedPlace1 == null || markedPlace2 == null);
-    if (!bothSelected) {
-      showErrorAlert("Two places must be selected!");
-    }
-    return bothSelected;
-  }
-
-  /**
-   * Återställer markeringar på kartan.
-   */
-  private void clearSelectedPlaces() {
-    markedPlace1 = null;
-    markedPlace2 = null;
-    if (markedCircle1 != null) {
-      markedCircle1.setFill(Color.PINK);
-    }
-    if (markedCircle2 != null) {
-      markedCircle2.setFill(Color.PINK);
-    }
-  }
-
-  /**
-   * 
-   * @param choice
-   */
-  private void disableButtons(boolean choice) {
-    // findPath.setDisable(choice);
-    // showConn.setDisable(choice);
-    // newPlace.setDisable(choice);
-    // newConn.setDisable(choice);
-    // changeConn.setDisable(choice);
-  }
-
-  /**
-   * När en dialogrutan behövs för att hantera en anslutning på något sätt,
-   * så visas den via denna metod.
-   * 
-   * @param connectionName
-   * @param time
-   * @param nameEditable
-   * @param timeEditable
-   * @return
-   */
-  private Optional<Edge<City>> showConnectionForm(String connectionName, int time, boolean nameEditable,
-      boolean timeEditable) {
-    Alert alert = new Alert(AlertType.CONFIRMATION);
-    alert.setTitle("Connection");
-    alert.setHeaderText("Connection from " + markedPlace1.getName() + " to " + markedPlace2.getName());
-
-    Label nameLabel = new Label("Name of connection:");
-    TextField nameField;
-    if (connectionName != null && connectionName.matches(PROPER_NAME_REGEX))
-      nameField = new TextField(connectionName);
-    else
-      nameField = new TextField("");
-    nameField.setEditable(nameEditable);
-
-    Label timeLabel = new Label("Travel time:");
-    TextField timeField;
-    if (time > 0)
-      timeField = new TextField(String.valueOf(time));
-    else
-      timeField = new TextField("");
-    timeField.setEditable(timeEditable);
-    // timeField.textProperty().addListener((observable, oldValue, newValue) -> {
-    // if (!newValue.matches("\\d*")) {
-    // timeField.setText(newValue.replaceAll("[^\\d]", ""));
-    // }
-    // });
-
-    final int SPACING_VALUE = 12;
-    GridPane grid = new GridPane();
-    grid.setHgap(SPACING_VALUE);
-    grid.setVgap(SPACING_VALUE);
-    grid.add(nameLabel, 0, 0);
-    grid.add(nameField, 1, 0);
-    grid.add(timeLabel, 0, 1);
-    grid.add(timeField, 1, 1);
-
-    alert.getDialogPane().setContent(grid);
-    alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-
-    // Här börjar visning och svarshantering
-    Optional<ButtonType> result = alert.showAndWait();
-    if (result.isPresent() && result.get().equals(ButtonType.OK)) {
-      if (nameEditable) {
-        String nameText = nameField.getText();
-        if (nameText.isBlank()) {
-          showErrorAlert("Input missing:\nEnter a name!");
-          return Optional.empty();
-        } else if (nameText.matches(PROPER_NAME_REGEX)) {
-          connectionName = nameText;
-        } else {
-          showErrorAlert("Invalid format:\nEnter a proper name!");
-          return Optional.empty();
-        }
-      }
-      if (timeEditable) {
-        String timeText = timeField.getText();
-        if (timeText.isBlank()) {
-          showErrorAlert("Input missing:\nEnter a time!");
-          return Optional.empty();
-        } else if (!timeText.matches("\\d+")) {
-          showErrorAlert("Invalid format:\nEnter time as a positive integer value!");
-          return Optional.empty();
-        } else {
-          time = Integer.parseInt(timeText);
-        }
-      }
-      return Optional.of(new ListEdge<>(markedPlace2, connectionName, time));
-    }
-    return Optional.empty();
   }
 
   /**
@@ -767,30 +775,21 @@ public class Gui extends Application {
   class ChangeConnectionHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
-
       if (twoPlacesSelected()) {
-        Edge<City> connection = graph.getEdgeBetween(markedPlace1, markedPlace2);
-        if (connection != null) {
-          Optional<Edge<City>> result = showConnectionForm(connection.getName(), 0, false, true);
+        Optional<Edge<Place>> connection = getConnectionBetweenSelectedPlaces(true);
+        if (connection.isPresent()) {
+          Optional<Edge<Place>> result = showConnectionForm(connection.get().getName(), 0, false, true);
           try {
             int time = result.get().getWeight();
-            graph.setConnectionWeight(markedPlace1, markedPlace2, time);
-
+            graph.setConnectionWeight(selectedPlace1, selectedPlace2, time);
             edited = true;
           } catch (NumberFormatException e) {
-            System.out.println("Invalid number input.");
+            showErrorAlert("Invalid number input.\n%s".formatted(e.getMessage()));
           }
-          clearSelectedPlaces();
         } else {
-          showErrorAlert(
-              "There exists no connection between " + markedPlace1.getName() + " and " + markedPlace2.getName() + "!");
           clearSelectedPlaces();
         }
-
-      } else {
-        // Felmeddelande för att två platser måste markeras.
       }
-
     }
   }
 
@@ -800,39 +799,31 @@ public class Gui extends Application {
   class ShowConnectionHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent event) {
-
       if (twoPlacesSelected()) {
-        Edge<City> connection = graph.getEdgeBetween(markedPlace1, markedPlace2);
-        if (connection != null) {
-          String connectionName = connection.getName();
-          int connectionTime = connection.getWeight();
-          showConnectionForm(connectionName, connectionTime, false, false);
+        Optional<Edge<Place>> connection = getConnectionBetweenSelectedPlaces(true);
+        if (connection.isPresent()) {
+          showConnectionForm(connection.get().getName(), connection.get().getWeight(), false, false);
         } else {
-          showErrorAlert(
-              "There exists no connection between " + markedPlace1.getName() + " and " + markedPlace2.getName() + "!");
           clearSelectedPlaces();
         }
-
-      } else {
-        // Felmeddelande för att två platser inte har valts
       }
     }
   }
 
   /**
-   * Hanterar vad ska ska ske när "Find Path"-knappen trycks på.
+   * Hanterar vad som ska ske när "Find Path"-knappen trycks på.
    */
   class FindPathHandler implements EventHandler<ActionEvent> {
+    @Override
     public void handle(ActionEvent event) {
-      List<Edge<City>> path = graph.getPath(markedPlace1, markedPlace2);
       int edgeWeightTotal = 0;
-
       if (twoPlacesSelected()) {
+        List<Edge<Place>> path = graph.getPath(selectedPlace1, selectedPlace2);
         if (path != null) {
           BorderPane borderPane = new BorderPane();
           TextArea textArea = new TextArea("");
           borderPane.setCenter(textArea);
-          for (Edge<City> edge : path) {
+          for (Edge<Place> edge : path) {
             edgeWeightTotal += edge.getWeight();
             textArea.appendText(edge.toString() + "\n");
           }
@@ -841,18 +832,14 @@ public class Gui extends Application {
 
           Alert alert = new Alert(AlertType.INFORMATION);
           alert.setTitle("Message");
-          alert.setHeaderText("The Path from " + markedPlace1.getName() + " to " + markedPlace2.getName());
+          alert.setHeaderText("The Path from " + selectedPlace1.getName() + " to " + selectedPlace2.getName());
           alert.getDialogPane().setContent(borderPane);
           alert.showAndWait();
-          clearSelectedPlaces();
         } else {
-          showErrorAlert("There is no path from " + markedPlace1.getName() + " to " + markedPlace2.getName());
-          clearSelectedPlaces();
+          showErrorAlert("There is no path from " + selectedPlace1.getName() + " to " + selectedPlace2.getName());
         }
-      } else {
-        // Felmeddelande för att två platser inte är valda finns i twoPlacesSelected()
+        clearSelectedPlaces();
       }
-
     }
   }
 
@@ -864,33 +851,21 @@ public class Gui extends Application {
     public void handle(ActionEvent event) {
       if (twoPlacesSelected()) {
         try {
-          // Potentiell hjälpmetod: placesConnected() som returnerar boolean och skapar
-          // eventuellt en felmeddelande
-          Edge<City> connection = graph.getEdgeBetween(markedPlace2, markedPlace1);
-          if (connection == null) {
-            Optional<Edge<City>> result = showConnectionForm(null, 0, true, true);
-
+          Optional<Edge<Place>> existingConnection = getConnectionBetweenSelectedPlaces(false);
+          if (existingConnection.isEmpty()) {
+            Optional<Edge<Place>> result = showConnectionForm(null, 0, true, true);
             if (result.isPresent()) {
               String connectionName = result.get().getName();
               int connectionTime = result.get().getWeight();
-
-              graph.connect(markedPlace1, markedPlace2, connectionName, connectionTime);
-              drawConnectionOnMap(markedPlace1, markedPlace2, connectionName, connectionTime);
-
+              graph.connect(selectedPlace1, selectedPlace2, connectionName, connectionTime);
+              drawConnectionOnMap(selectedPlace1, selectedPlace2);
               edited = true;
             }
-            // Nollställ markeringar
             clearSelectedPlaces();
-
-          } else {
-            showErrorAlert("There already exists a connection between these places!");
           }
         } catch (NoSuchElementException ex) {
-          System.err.println("Two selected nodes expected, but not found!");
-          ex.printStackTrace();
+          showErrorAlert("Two selected nodes expected, but not found!\n%s".formatted(ex.getMessage()));
         }
-      } else {
-        // writeErrorAlert("Two places must be selected!");
       }
     }
   }
@@ -898,7 +873,7 @@ public class Gui extends Application {
   /**
    * Hanterar vad som ska ske när "Exit"-menyvalet väljs.
    */
-  private class ExitItemHandler implements EventHandler<ActionEvent> {
+  class ExitItemHandler implements EventHandler<ActionEvent> {
     @Override
     public void handle(ActionEvent arg0) {
       stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
@@ -911,37 +886,7 @@ public class Gui extends Application {
   class ExitHandler implements EventHandler<WindowEvent> {
     @Override
     public void handle(WindowEvent event) {
-      if (edited) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Warning!");
-        alert.setContentText("Unsaved changes, continue anyway?");
-        alert.setHeaderText(null);
-
-        Optional<ButtonType> answer = alert.showAndWait();
-        if (answer.isPresent() && answer.get().equals(ButtonType.CANCEL)) {
-          // Stoppa nedstängningshändelse
-          event.consume();
-        }
-      }
-    }
-  }
-
-  /**
-   * Hanterar vad som ska ske när "Save Image"-menyvalet väljs.
-   */
-  private class SaveImageItemHandler implements EventHandler<ActionEvent> {
-    public void handle(ActionEvent event) {
-      Alert alert;
-      try {
-        WritableImage image = centerPane.snapshot(null, null);
-        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(image, null);
-        ImageIO.write(bufferedImage, "png", new File("capture.png"));
-        alert = new Alert(AlertType.INFORMATION, "Snapshot saved as capture.png");
-        alert.setHeaderText(null);
-      } catch (IOException e) {
-        alert = new Alert(Alert.AlertType.ERROR, "IO Error " + e.getMessage());
-      }
-      alert.showAndWait();
+      checkForUnsavedChanges(event);
     }
   }
 }
