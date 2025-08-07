@@ -46,11 +46,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Background;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -75,7 +73,8 @@ public class Gui extends Application {
   private final String PROPER_NAME_REGEX = "^[\\p{L}0-9]+(?:(?:[\s-]|\\. )[\\p{L}0-9]+)*$";
 
   private Stage stage;
-  private FileChooser fileChooser;
+  private FileChooser imageChooser;
+  private FileChooser graphChooser;
   private ExtensionFilter noFilter;
   private ExtensionFilter txtFilter;
   private ExtensionFilter imageFilter;
@@ -86,7 +85,6 @@ public class Gui extends Application {
   private Button newPlace;
   private Scene scene;
   private VBox vbox;
-  private HBox hbox;
   private Graph<Place> graph;
   private BorderPane root;
 
@@ -105,20 +103,22 @@ public class Gui extends Application {
    */
   @Override
   public void start(Stage primaryStage) throws IOException {
-    // Fix: så dialogfönster öppnas från projektets rotmapp.
+    // dialogfönster öppnas från projektets rotmapp.
     File projectRoot = new File(System.getProperty("user.dir"));
     if (projectRoot.exists()) {
-      fileChooser = new FileChooser();
-      fileChooser.setInitialDirectory(projectRoot);
+      imageChooser = new FileChooser();
+      imageChooser.setInitialDirectory(projectRoot);
+      graphChooser = new FileChooser();
+      graphChooser.setInitialDirectory(projectRoot);
     } else {
       throw new IOException("Project directory not found!");
     }
-    // Fix: Skapa ändelsefilter för text- och bildfiler som används i
-    // fildialogfönster
-    noFilter = new ExtensionFilter("All files (*)", "*");
+    // ändelsefilter för text- och bildfiler som används i fildialogfönster
+    noFilter = new ExtensionFilter("All files (*.*)", "*.*");
     txtFilter = new ExtensionFilter("Text files (*.txt)", "*.txt");
     imageFilter = new ExtensionFilter("Image files (*.png, *.jpg)", "*.png", "*.jpg");
-    fileChooser.getExtensionFilters().addAll(txtFilter, imageFilter);
+    imageChooser.getExtensionFilters().add(imageFilter);
+    graphChooser.getExtensionFilters().addAll(txtFilter, noFilter);
 
     // grafen som lagrar alla platser och förbindelser
     graph = new ListGraph<>();
@@ -158,59 +158,16 @@ public class Gui extends Application {
     vbox = new VBox(menuBar, buttonPane);
     // karta med en bildvy
     imageView = new ImageView();
-    // imageView.setFitWidth(0);
-    // imageView.setFitHeight(0);
-    // imageView.imageProperty().addListener((obs, oldImage, newImage) -> {
-    //   if (newImage != null) {
-    //     mapPane.setManaged(true);
-    //     mapPane.setVisible(true);
-    //     scrollPane.setManaged(true);
-    //     scrollPane.setVisible(true);
-    //     // imageView.setFitWidth(newImage.getWidth());
-    //     // imageView.setFitHeight(newImage.getHeight());
-    //     // centerPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-    //     // centerPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-    //     double width = newImage.getWidth();
-    //     double height = newImage.getHeight();
-    //     scrollPane.setPrefViewportWidth(width);
-    //     scrollPane.setPrefViewportHeight(height);
-    //     scrollPane.setPrefSize(width, height);
-    //     //XOR
-    //     mapPane.setPrefSize(width, height);
-    //     int scrollbarAllowance = 10;
-    //     // root.setPrefSize(width, height + vbox.getHeight());
-    //     root.setPrefWidth(width + scrollbarAllowance);
-    //     stage.sizeToScene(); // Anpassa fönstret
-    //     root.setPrefHeight(height + scrollbarAllowance + vbox.getHeight());
-    //     stage.sizeToScene();
-    //   }
-    // });
-
-    // scrollPane.setHvalue((root.getBoundsInLocal().getWidth() - scrollPane.getViewportBounds().getWidth()) / 2);
-    // scrollPane.setVvalue((root.getBoundsInLocal().getHeight() - scrollPane.getViewportBounds().getHeight()) / 2);
-
     mapPane = new Pane(imageView);
-    mapPane.setBackground(Background.fill(null));
-    // mapPane.setManaged(false);
-    // mapPane.setVisible(false);
-
-    // Behållare som visar scrollbars om innehållet är större än dess viewport
-    // scrollPane = new ScrollPane(mapPane);
-    // scrollPane.setManaged(false);
-    // scrollPane.setVisible(false);
-    // scrollPane.setBackground(Background.fill(Color.BROWN));
-
+    // mapPane.setBackground(Background.fill(null));
     // behållare till alla kartkomponenter
     FlowPane centerPane = new FlowPane(mapPane);
     centerPane.setAlignment(Pos.CENTER);
-    
-
     // behållare (rotnod) till alla komponenter i fönstret
     root = new BorderPane();
-    root.setBackground(Background.fill(Color.BEIGE));
+    // root.setBackground(Background.fill(Color.BEIGE));
     root.setTop(vbox);
     root.setCenter(mapPane);
-    // root.setCenter(scrollPane);
     root.setPrefSize(520, vbox.getHeight());
 
     stage = primaryStage;
@@ -218,8 +175,9 @@ public class Gui extends Application {
     stage.setOnCloseRequest(new ExitHandler());
     scene = new Scene(root);
     stage.setScene(scene);
+    // stoppar användare från att kunna ändra fönstrets storlek manuellt
+    stage.setResizable(false);
     stage.show();
-    // hbox.setDisable(true);
   }
 
   /**
@@ -273,12 +231,12 @@ public class Gui extends Application {
    */
   private void drawPlaceOnMap(String name, double x, double y) {
     // Skapa cirkel
-    Circle circle = new Circle(x, y, 12);
+    Circle circle = new Circle(x, y, 6);
     circle.setFill(Color.PINK);
     // Skapa etikett
     Label cityLabel = new Label(name);
-    cityLabel.setLayoutX(x + 6);
-    cityLabel.setLayoutY(y + 6);
+    cityLabel.setLayoutX(x + 3);
+    cityLabel.setLayoutY(y + 3);
     cityLabel.setStyle("fx-font-family: 'Calibri'; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: black;");
     cityLabel.setLabelFor(circle);
     // Skapa behållare för stadens etikett och cirkel
@@ -331,24 +289,30 @@ public class Gui extends Application {
    */
   private boolean changeMapImage(String filePath) {
     boolean changed = false;
-    if (filePath.matches(".+\\.(?i)(png|img)")) {
-      // steg 1: hämtar bild på karta och ritar ut i kartvy
-      Image image = new Image(filePath);
-      imageView.setImage(image);
-      // steg 2: anpassar rot och fönster efter (önskad) bildvidd
-      root.setPrefWidth(image.getWidth());
-      stage.sizeToScene();
-      // steg 3: anpassar rot och fönster efter (önskad) gemensam komponenthöjd givet
-      // den nya vidden
-      root.setPrefHeight(image.getHeight() + vbox.getHeight());
-      stage.sizeToScene();
-
-      Rectangle clip = new Rectangle(image.getWidth(), image.getHeight());
-      mapPane.setClip(clip);
-
-      changed = true;
-    } else {
-      showErrorAlert("Invalid file for map image. Choose a PNG- or IMG-file.");
+    // OBS: går att göra kontrll med regex: filePath.matches(".+\\.(?i)(png|img)")
+    final int secondCharIndex = 1; // för att hoppa över "*"
+    Iterator<String> extensions = imageFilter.getExtensions().iterator();
+    while (extensions.hasNext() && !changed) {
+      if (filePath.endsWith(extensions.next().substring(secondCharIndex))) {
+        // steg 1: hämtar bild på karta och ritar ut i kartvy
+        Image image = new Image(filePath);
+        imageView.setImage(image);
+        // steg 2: anpassar rot och fönster efter (önskad) bildvidd
+        root.setPrefWidth(image.getWidth());
+        stage.sizeToScene();
+        // steg 3: anpassar rot och fönster efter (önskad) gemensam komponenthöjd givet
+        // den nya vidden
+        root.setPrefHeight(image.getHeight() + vbox.getHeight());
+        stage.sizeToScene();
+        // steg 4: anpassar kartans rityta så att inget ritas utanför bildens
+        // dimensioner
+        Rectangle clip = new Rectangle(image.getWidth(), image.getHeight());
+        mapPane.setClip(clip);
+        changed = true;
+      }
+    }
+    if (!changed) {
+      showErrorAlert("Invalid file type for map image. Choose a .png- or .img-file.");
     }
     return changed;
   }
@@ -503,8 +467,7 @@ public class Gui extends Application {
     public void handle(ActionEvent event) {
       checkForUnsavedChanges(event);
       if (!event.isConsumed()) {
-        fileChooser.setSelectedExtensionFilter(imageFilter);
-        File file = fileChooser.showOpenDialog(stage);
+        File file = imageChooser.showOpenDialog(stage);
         if (file != null) {
           resetMapGraph();
           if (changeMapImage(file.toURI().toString())) {
@@ -525,13 +488,16 @@ public class Gui extends Application {
     public void handle(ActionEvent event) {
       checkForUnsavedChanges(event);
       if (!event.isConsumed()) { // om händelse fortfarande pågår
-        fileChooser.setSelectedExtensionFilter(txtFilter);
-        File graphFile = fileChooser.showOpenDialog(stage);
+        graphChooser.setSelectedExtensionFilter(txtFilter);
+        File graphFile = graphChooser.showOpenDialog(stage);
         if (graphFile != null) {
-          openMap(graphFile.getAbsolutePath());
-          edited = false;
-          buttonPane.setDisable(false);
-          buttonPane.requestFocus();
+          if (openMap(graphFile.getAbsolutePath())) {
+            edited = false;
+            buttonPane.setDisable(false);
+            buttonPane.requestFocus();
+          } else {
+
+          }
         }
       }
     }
@@ -541,7 +507,7 @@ public class Gui extends Application {
      * 
      * @param filePath sökväg till formaterad fil med kartdata
      */
-    private void openMap(String filePath) {
+    private boolean openMap(String filePath) {
       boolean opened = false;
       try (FileReader fileReader = new FileReader(filePath); BufferedReader reader = new BufferedReader(fileReader)) {
         // TODO: Byt ut till genomgång av fil med Iterator<String> lineItertor =
@@ -549,45 +515,51 @@ public class Gui extends Application {
         resetMapGraph();
         // Byt kartbild i fönstret
         String mapPath = reader.readLine();
-        // TODO: skriv ut felmeddelande om filen inte är i korrekt format
         if (changeMapImage(mapPath)) {
           // Hämta och sätt in alla platser i grafen
           String locationRow = reader.readLine();
-          drawLocations(locationRow.split(";"));
-          // Hämta och sätt in alla anslutningar mellan platser i grafen
-          drawConnections(reader);
-          opened = true;
-        } else {
-
+          if (drawLocations(locationRow.split(";"))) {
+            // Hämta och sätt in alla anslutningar mellan platser i grafen
+            if (drawConnections(reader)) {
+              opened = true;
+            }
+          }
         }
-
       } catch (FileNotFoundException ex) {
         showErrorAlert("Can't open file, because %s".formatted(ex.getMessage()));
       } catch (IOException ex) {
         showErrorAlert("IO error %s".formatted(ex.getMessage()));
       }
+      return opened;
     }
 
     /**
      * Tolkar platsdata och ritar ut alla platser på kartan.
      */
-    private void drawLocations(String[] LocationsData) {
+    private boolean drawLocations(String[] LocationsData) {
+      boolean drawn = false;
       int nameIndex = 0;
       int xIndex = 1;
       int yIndex = 2;
-      while (nameIndex < LocationsData.length) {
-        try {
+      try {
+        while (nameIndex < LocationsData.length) {
           Place city = new Place(LocationsData[nameIndex], Double.parseDouble(LocationsData[xIndex]),
               Double.parseDouble(LocationsData[yIndex]));
           graph.add(city);
           drawPlaceOnMap(city.getName(), city.getX(), city.getY());
-        } catch (NumberFormatException nfe) {
-          showErrorAlert("Expected a double, but got something else: " + nfe.getMessage());
+          nameIndex += 3;
+          xIndex = nameIndex + 1;
+          yIndex = nameIndex + 2;
         }
-        nameIndex += 3;
-        xIndex = nameIndex + 1;
-        yIndex = nameIndex + 2;
+        drawn = true;
+      } catch (NumberFormatException ex) {
+        showErrorAlert("Expected a travel time, but got something else: " + ex.getMessage());
+      } catch (IndexOutOfBoundsException ex) {
+        showErrorAlert("Expected three place attributes, but found wrong amount: " + ex.getMessage());
+      } catch (NullPointerException ex) {
+        showErrorAlert("Expected an attribute, but found none: " + ex.getMessage());
       }
+      return drawn;
     }
 
     /**
@@ -596,7 +568,8 @@ public class Gui extends Application {
      * @param reader sköter filläsning
      * @throws IOException ifall det inte går att läsa från fil
      */
-    private void drawConnections(BufferedReader reader) throws IOException {
+    private boolean drawConnections(BufferedReader reader) throws IOException {
+      boolean drawn = false;
       final int originIndex = 0;
       final int destinationIndex = 1;
       final int connectionNameIndex = 2;
@@ -616,29 +589,35 @@ public class Gui extends Application {
       Set<String> visitedAsOrigin = new HashSet<>();
       String connectionRow = reader.readLine();
       String[] connectionData;
-      while (connectionRow != null) {
-        connectionData = connectionRow.split(";");
-        // Hitta platsen som hör till inläst startpunktsnamn
-        origin = findLocation(connectionData[originIndex]);
-        // Hitta platsen som hör till inläst destinationsnamn
-        // Kontrollera så destinationen inte redan dykt upp som en startpunkt tidigare
-        if (!visitedAsOrigin.contains(connectionData[destinationIndex])) {
-          destination = findLocation(connectionData[destinationIndex]);
-          if (origin.isPresent() && destination.isPresent()) {
-            try {
+      try {
+        while (connectionRow != null) {
+          connectionData = connectionRow.split(";");
+          // Hitta platsen som hör till inläst startpunktsnamn
+          origin = findLocation(connectionData[originIndex]);
+          // Hitta platsen som hör till inläst destinationsnamn
+          // Kontrollera så destinationen inte redan dykt upp som en startpunkt tidigare
+          if (!visitedAsOrigin.contains(connectionData[destinationIndex])) {
+            destination = findLocation(connectionData[destinationIndex]);
+            if (origin.isPresent() && destination.isPresent()) {
               weight = Integer.parseInt(connectionData[connectionWeightIndex]);
               graph.connect(origin.get(), destination.get(), connectionData[connectionNameIndex], weight);
               drawConnectionOnMap(origin.get(), destination.get());
               // Lägg till att startpunkten har besökts
               visitedAsOrigin.add(origin.get().getName());
-            } catch (NumberFormatException nfe) {
-              System.err.println("Expected an integer, but got something else: " + nfe.getMessage());
             }
           }
+          // Läs in nästa rad, om den finns, med anslutningsdata
+          connectionRow = reader.readLine();
         }
-        // Läs in nästa rad, om den finns, med anslutningsdata
-        connectionRow = reader.readLine();
+        drawn = true;
+      } catch (NumberFormatException ex) {
+        showErrorAlert("Expected a travel time, but got something else: " + ex.getMessage());
+      } catch (IndexOutOfBoundsException ex) {
+        showErrorAlert("Expected three connection attributes, but found wrong amount: " + ex.getMessage());
+      } catch (NullPointerException ex) {
+        showErrorAlert("Expected an attribute, but found none: " + ex.getMessage());
       }
+      return drawn;
     }
   }
 
@@ -649,9 +628,9 @@ public class Gui extends Application {
 
     @Override
     public void handle(ActionEvent event) {
-      fileChooser.setSelectedExtensionFilter(txtFilter);
-      fileChooser.setInitialFileName("graph.txt");
-      File saveFile = fileChooser.showSaveDialog(stage);
+      graphChooser.setSelectedExtensionFilter(txtFilter);
+      graphChooser.setInitialFileName("graph.txt");
+      File saveFile = graphChooser.showSaveDialog(stage);
       if (saveFile != null) {
         saveMap(saveFile.getAbsolutePath());
         edited = false;
@@ -710,6 +689,7 @@ public class Gui extends Application {
    * Hanterar vad som ska ske när "Save Image"-menyvalet väljs.
    */
   class SaveImageItemHandler implements EventHandler<ActionEvent> {
+    @Override
     public void handle(ActionEvent event) {
       if (imageView.getImage() != null) {
         Alert alert;
