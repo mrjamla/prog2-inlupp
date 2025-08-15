@@ -24,7 +24,7 @@ public class Place{
             return false;
         }
         // två platser är lika om de delar namn (case-insensitive)
-        return this.name.toLowerCase().equals(other.name.toLowerCase()); //&& this.x == other.x && this.y == other.y;
+        return this.name.toLowerCase().equals(other.name.toLowerCase());
     }
 
     @Override

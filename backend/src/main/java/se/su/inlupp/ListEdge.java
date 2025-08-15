@@ -47,17 +47,4 @@ public class ListEdge<T> implements Edge<T>{
         return String.format("to %s by %s takes %d", destination, name, weight);
         // return "till " + destination + " med " + name + " tar " + weight;
     }
-
-    // @Override
-    // public boolean equals(Object other){
-    //     if(other instanceof ListEdge o){
-    //         return this.destination == o.destination;
-    //     }
-    //     return false;
-    // }
-
-    // @Override
-    // public int hashCode(){
-    //     return Objects.hash(name, destination);
-    // }
 }

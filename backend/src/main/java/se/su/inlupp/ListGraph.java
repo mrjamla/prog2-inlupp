@@ -28,13 +28,13 @@ public class ListGraph<T> implements Graph<T> {
       Collection<Edge<T>> edges1 = getEdgesFrom(node1);
       for (Edge<T> edge : edges1) {
         if (edge.getDestination().equals(node2)) {
-          throw new IllegalStateException(); // unchecked exception, kant finns redan
+          throw new IllegalStateException();
         }
       }
       nodes.get(node1).add(new ListEdge<>(node2, name, weight));
       nodes.get(node2).add(new ListEdge<>(node1, name, weight));
     } else {
-      throw new NoSuchElementException(); // checked exception, någon nod saknas i grafen
+      throw new NoSuchElementException();
     }
   }
 
@@ -54,7 +54,7 @@ public class ListGraph<T> implements Graph<T> {
     if (nodes.containsKey(node)) {
       return new HashSet<>(nodes.get(node));
     } else {
-      throw new NoSuchElementException(); // checked exception, noden saknas i grafen
+      throw new NoSuchElementException();
     }
   }
 
@@ -68,9 +68,9 @@ public class ListGraph<T> implements Graph<T> {
         }
       }
     } else {
-      throw new NoSuchElementException(); //  andra noden saknas i grafen
+      throw new NoSuchElementException();
     }
-    return null; // kant saknas mellan noder
+    return null;
   }
 
   @Override
@@ -78,7 +78,7 @@ public class ListGraph<T> implements Graph<T> {
     Edge<T> edgeTo2 = getEdgeBetween(node1, node2);
     Edge<T> edgeTo1 = getEdgeBetween(node2, node1);
     if (edgeTo2 == null || edgeTo1 == null) {
-      throw new IllegalStateException(); // unchecked exception, kant saknas mellan noder
+      throw new IllegalStateException();
     } else {
       nodes.get(node1).remove(edgeTo2);
       nodes.get(node2).remove(edgeTo1);
@@ -108,58 +108,52 @@ public class ListGraph<T> implements Graph<T> {
   @Override
   public boolean pathExists(T from, T to) {
     if (nodes.containsKey(from) && nodes.containsKey(to)) {
-      Set<T> visited = new HashSet<>(); // vill inte besöka redan besökta noder
-      return isAPath(from, to, visited); // följ kanter från from tills vi når to eller tills alla vägar från from genomsökts
+      Set<T> visited = new HashSet<>(); 
+      return isAPath(from, to, visited);
     }
     return false;
   }
 
   private boolean isAPath(T from, T to, Set<T> visited) {
-    visited.add(from); // markera noden som besökt
-    if (from.equals(to)) { // Är noden den vi söker?
+    visited.add(from); 
+    if (from.equals(to)) {
       return true;
     }
-    // för varje granne som är ansluten via en kant till noden
+    
     for (Edge<T> edge : getEdgesFrom(from)) {
-      // Har vi inte redan besökt grannen tidigare?
-      if (!visited.contains(edge.getDestination())) {
-        // rekursivt anrop, besök granne och se om vägen via denna leder till sökta
-        // noden
+      if (!visited.contains(edge.getDestination())) {  
         if (isAPath(edge.getDestination(), to, visited)) {
           return true;
         }
-      }
-      // vägen ledde inte till den sökta noden, hitta nästa kant till en obesökt
-      // granne
+      }  
     }
-    // ingen av vägar via den här nodens grannar leder till sökta noden
-    return false;
+       return false;
   }
 
   @Override
   public List<Edge<T>> getPath(T from, T to) {
     Map<T, T> connection = new HashMap<>();
-    recursiveConnect(from, null, connection); // följ kanter från startnoden och spara en koppling för varje nod längst vägen som går att nå från den                                             // startnoden (from)
+    recursiveConnect(from, null, connection);
     LinkedList<Edge<T>> path = new LinkedList<>();
-    T current = to; // börja från slutnoden som vald nod
-    while (current != null && !current.equals(from)) { // så länge vald nod inte är null OCH vi inte har nåt startnoden
-      T next = connection.get(current); // hämta nästa nod på vägen till start, om den finns, annars null
-      if (next != null) { // finns ingen koppling till en annan nod, så hoppa över att hämta kant (null, current) och undvik felmeddelande 
-        Edge<T> edge = getEdgeBetween(next, current); // hämta kant mellan nästa nod, ett steg närmare start, och vald nod
-        path.addFirst(edge); // lägg kanter på varandra ("stacka dem") så de kommer i rätt ordning
+    T current = to;
+    while (current != null && !current.equals(from)) {
+      T next = connection.get(current);
+      if (next != null) {  
+        Edge<T> edge = getEdgeBetween(next, current);
+        path.addFirst(edge);
       }
-      current = next; // välj nästa nod som vald nod och upprepa
+      current = next;
     }
-    return current == null ? null : path; // om vi når ett null istället för from-noden, så returnas att väg saknas (null) annars en väg (path) 
+    return current == null ? null : path; 
   }
 
   private void recursiveConnect(T to, T from, Map<T, T> connection) {
-    connection.put(to, from); // lägg in att vi besökt to-noden från from-noden (en koppling)
-    for (Edge<T> edge : getEdgesFrom(to)) { // sök igenom kanter kopplade till to-nod
-      if (!connection.containsKey(edge.getDestination())) { // om vi ännu inte besök destinationsnoden i en kant
-        recursiveConnect(edge.getDestination(), to, connection); // besök destinationen, lägg in hur vi kom till den (från to-noden) och leta efter obesökta noder via den nya nodens kanter
+    connection.put(to, from);
+    for (Edge<T> edge : getEdgesFrom(to)) {
+      if (!connection.containsKey(edge.getDestination())) {
+        recursiveConnect(edge.getDestination(), to, connection);
       }
-      // annars leta vidare bland andra kanter efter obesökta noder
+      
     }
   }
 }
