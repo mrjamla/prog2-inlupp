@@ -114,8 +114,8 @@ public class Gui extends Application {
     }
     // skapar ändelsefilter för text- och bildfiler som används i fildialogfönster
     noFilter = new ExtensionFilter("All files (*.*)", "*.*");
-    txtFilter = new ExtensionFilter("Text files (*.txt)", "*.txt");
-    imageFilter = new ExtensionFilter("Image files (*.png, *.jpg)", "*.png", "*.jpg");
+    txtFilter = new ExtensionFilter("Text files (*.txt, *.graph)", "*.txt", "*.graph");
+    imageFilter = new ExtensionFilter("Image files (*.png, *.jpg, *.gif)", "*.png", "*.jpg", "*.gif");
     imageChooser.getExtensionFilters().add(imageFilter);
     graphChooser.getExtensionFilters().addAll(txtFilter, noFilter);
     // grafen som lagrar alla platser och förbindelser
@@ -445,6 +445,7 @@ public class Gui extends Application {
     } else {
       if (connection != null) {
         showErrorAlert("There already exists a connection between these places!");
+        result = Optional.of(connection);
       }
     }
     return result;
